@@ -12,14 +12,17 @@ Architecture reference: [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ---
 
-## Phase 0 — Environment (½ day)
+## Phase 0 — Environment (½ day) — pnpm ✅, Docker ⏳
 
 | Step | Build                                                                                           | Done when                                   |
 | ---- | ----------------------------------------------------------------------------------------------- | ------------------------------------------- |
 | 0.1  | Install Docker Desktop (WSL2 backend) and pnpm (`npm i -g pnpm`). Pin the Node LTS in `.nvmrc`. | `docker run hello-world` and `pnpm -v` work |
 | 0.2  | `git init`, `.gitignore`, `.editorconfig`, LICENSE, README skeleton, create the GitHub repo     | first commit pushed                         |
 
-## Phase 1 — Foundation (week 1)
+## Phase 1 — Foundation (week 1) ✅
+
+> **Status:** code complete. Steps 1.2 and 1.5 were verified in CI (Postgres service container);
+> they still need a local run once Docker Desktop is installed: `pnpm infra:up && pnpm db:migrate && pnpm db:seed`.
 
 **Goal:** monorepo, infrastructure, and an authenticated, documented API.
 

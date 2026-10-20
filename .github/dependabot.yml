@@ -1,0 +1,26 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    # Related packages move together, so they arrive as one PR instead of five.
+    groups:
+      nestjs:
+        patterns: ['@nestjs/*']
+      prisma:
+        patterns: ['prisma', '@prisma/*']
+      lint-and-format:
+        patterns: ['eslint', '@eslint/*', 'typescript-eslint', 'eslint-*', 'prettier']
+      testing:
+        patterns: ['vitest', 'supertest', '@types/supertest', 'unplugin-swc', '@swc/*']
+    ignore:
+      # TypeScript majors wait until typescript-eslint supports them (currently TS < 6.1).
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
