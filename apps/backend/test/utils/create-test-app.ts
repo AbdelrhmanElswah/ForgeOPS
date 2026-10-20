@@ -6,18 +6,22 @@ import { Test } from '@nestjs/testing';
 import { ApiModule } from '../../src/api.module.js';
 import { configureApiApp } from '../../src/api.setup.js';
 import { PrismaService } from '../../src/infrastructure/prisma/prisma.service.js';
+import { TaskQueue } from '../../src/infrastructure/queue/task-queue.js';
 import { KeyValueStore } from '../../src/infrastructure/redis/key-value.store.js';
 import { REDIS_CLIENT } from '../../src/infrastructure/redis/redis.module.js';
 import { SessionsRepository } from '../../src/modules/auth/application/sessions.repository.js';
 import { GitHubAppClient } from '../../src/modules/github/application/github-app.client.js';
 import { InstallationsRepository } from '../../src/modules/github/application/installations.repository.js';
 import { RepositoriesRepository } from '../../src/modules/repositories/application/repositories.repository.js';
+import { TasksRepository } from '../../src/modules/tasks/application/tasks.repository.js';
 import { UsersRepository } from '../../src/modules/users/users.repository.js';
 import { FakeGitHubAppClient } from '../fakes/fake-github-app.client.js';
 import { InMemoryInstallationsRepository } from '../fakes/in-memory-installations.repository.js';
 import { InMemoryKeyValueStore } from '../fakes/in-memory-key-value.store.js';
 import { InMemoryRepositoriesRepository } from '../fakes/in-memory-repositories.repository.js';
 import { InMemorySessionsRepository } from '../fakes/in-memory-sessions.repository.js';
+import { InMemoryTaskQueue } from '../fakes/in-memory-task-queue.js';
+import { InMemoryTasksRepository } from '../fakes/in-memory-tasks.repository.js';
 import { InMemoryUsersRepository } from '../fakes/in-memory-users.repository.js';
 
 export interface FakeDependencies {
@@ -62,6 +66,10 @@ export async function createTestApp(
     .useValue(new InMemoryRepositoriesRepository(installations))
     .overrideProvider(GitHubAppClient)
     .useValue(new FakeGitHubAppClient())
+    .overrideProvider(TasksRepository)
+    .useValue(new InMemoryTasksRepository())
+    .overrideProvider(TaskQueue)
+    .useValue(new InMemoryTaskQueue())
     .compile();
 
   const app = moduleRef.createNestApplication<INestApplication<Server>>({

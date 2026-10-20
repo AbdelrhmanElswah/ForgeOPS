@@ -49,3 +49,15 @@ export class ForbiddenError extends DomainError {
 export class ConflictError extends DomainError {
   readonly code = 'conflict';
 }
+
+export class ServiceUnavailableError extends DomainError {
+  readonly code = 'service_unavailable';
+}
+
+export class IdempotencyKeyReusedError extends DomainError {
+  readonly code = 'idempotency_key_reused';
+
+  constructor() {
+    super('This Idempotency-Key was already used with a different request body.');
+  }
+}

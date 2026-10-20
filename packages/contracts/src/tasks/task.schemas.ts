@@ -49,6 +49,8 @@ export const TaskSchema = z.object({
   status: TaskStatusSchema,
   failureReason: TaskFailureReasonSchema.nullable(),
   costUsd: z.number().nonnegative(),
+  /** Set when a running task was asked to stop; it ends at the next safe point. */
+  cancelRequestedAt: TimestampSchema.nullable(),
   createdAt: TimestampSchema,
   updatedAt: TimestampSchema,
 });

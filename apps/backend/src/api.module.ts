@@ -10,6 +10,7 @@ import { AuthModule } from './modules/auth/auth.module.js';
 import { GitHubIntegrationModule } from './modules/github/github-integration.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { RepositoriesModule } from './modules/repositories/repositories.module.js';
+import { TasksModule } from './modules/tasks/tasks.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 
 /**
@@ -27,6 +28,7 @@ import { UsersModule } from './modules/users/users.module.js';
     AuthModule,
     GitHubIntegrationModule,
     RepositoriesModule,
+    TasksModule,
   ],
   providers: [{ provide: APP_FILTER, useClass: ProblemDetailsFilter }],
 })

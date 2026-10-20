@@ -16,6 +16,15 @@ export class InMemoryKeyValueStore extends KeyValueStore {
     return Promise.resolve(entry?.value ?? null);
   }
 
+  get(key: string): Promise<string | null> {
+    return Promise.resolve(this.entries.get(key)?.value ?? null);
+  }
+
+  set(key: string, value: string, ttlSeconds: number): Promise<void> {
+    this.entries.set(key, { value, ttlSeconds });
+    return Promise.resolve();
+  }
+
   delete(key: string): Promise<void> {
     this.entries.delete(key);
     return Promise.resolve();

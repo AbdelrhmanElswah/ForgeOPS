@@ -13,6 +13,9 @@ export abstract class KeyValueStore {
   abstract setIfAbsent(key: string, value: string, ttlSeconds: number): Promise<boolean>;
   /** Reads and deletes in one step, so a value can be consumed exactly once. */
   abstract take(key: string): Promise<string | null>;
+  abstract get(key: string): Promise<string | null>;
+  /** Overwrites, resetting the TTL. */
+  abstract set(key: string, value: string, ttlSeconds: number): Promise<void>;
   abstract delete(key: string): Promise<void>;
 }
 
@@ -29,6 +32,14 @@ export class RedisKeyValueStore extends KeyValueStore {
 
   take(key: string): Promise<string | null> {
     return this.redis.getdel(key);
+  }
+
+  get(key: string): Promise<string | null> {
+    return this.redis.get(key);
+  }
+
+  async set(key: string, value: string, ttlSeconds: number): Promise<void> {
+    await this.redis.set(key, value, 'EX', ttlSeconds);
   }
 
   async delete(key: string): Promise<void> {

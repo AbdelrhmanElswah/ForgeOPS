@@ -196,12 +196,13 @@ modules/tasks/
 
 `worker.main.ts` boots `WorkerModule` with `NestFactory.createApplicationContext()`, so it has no HTTP server.
 
-| Queue         | Job                 | jobId (dedupe)        | Purpose                              |
-| ------------- | ------------------- | --------------------- | ------------------------------------ |
-| `agent-runs`  | `run.start`         | `start:<taskId>`      | Start the graph for a new task       |
-| `agent-runs`  | `run.resume`        | `resume:<approvalId>` | Resume after approval/rejection      |
-| `maintenance` | `workspace.cleanup` | repeatable            | Delete expired workspaces/containers |
+| Queue         | Job                 | jobId (dedupe)            | Purpose                              |
+| ------------- | ------------------- | ------------------------- | ------------------------------------ |
+| `agent-runs`  | `run.start`         | `run-start-<taskId>`      | Start the graph for a new task       |
+| `agent-runs`  | `run.resume`        | `run-resume-<approvalId>` | Resume after approval/rejection      |
+| `maintenance` | `workspace.cleanup` | repeatable                | Delete expired workspaces/containers |
 
+- **Job ids** are deterministic, so enqueueing twice yields one job (BullMQ forbids `:` in custom ids).
 - **Concurrency** per worker is configurable (default 2 graphs at once).
 - **Retries:** BullMQ `attempts: 3` with exponential backoff. A retry calls the graph with the **same
   `thread_id`** and `null` input, so LangGraph **resumes from the last checkpoint**.
