@@ -72,7 +72,11 @@ because the agents' tools read from the workspace.)
 
 **Demo:** a CLI script clones the fixture repo into a sandbox, runs its tests, and prints results.
 
-## Phase 4 — Agent orchestrator, part 1 (week 4)
+## Phase 4 — Agent orchestrator, part 1 (week 4) ✅
+
+> **Status:** code complete and tested with fakes (scripted LLM, in-memory workspace, in-memory
+> checkpointer, in-memory events). Not yet run against real Postgres, Redis or the Claude API;
+> the workspace is a placeholder until Phase 3 (Docker).
 
 **Goal:** task in → plan + root-cause findings out, live.
 

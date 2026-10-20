@@ -3,6 +3,7 @@ import { ClaudeLlmClient, type RoleModel } from '@forgeops/agents/llm/anthropic'
 import { Module } from '@nestjs/common';
 
 import { AppConfig } from '../../common/config/app-config.service.js';
+import { EventsModule } from '../events/events.module.js';
 import { GitHubModule } from '../github/github.module.js';
 import { RepositoriesModule } from '../repositories/repositories.module.js';
 import { TasksModule } from '../tasks/tasks.module.js';
@@ -15,7 +16,7 @@ import { CHECKPOINTER, LLM_CLIENT } from './orchestrator.tokens.js';
 
 /** Worker process only: consumes the queue and runs the agents. */
 @Module({
-  imports: [TasksModule, RepositoriesModule, GitHubModule],
+  imports: [TasksModule, RepositoriesModule, GitHubModule, EventsModule],
   providers: [
     AgentOrchestratorService,
     AgentRunProcessor,

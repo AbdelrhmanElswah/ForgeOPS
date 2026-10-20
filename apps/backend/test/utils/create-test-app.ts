@@ -10,6 +10,7 @@ import { TaskQueue } from '../../src/infrastructure/queue/task-queue.js';
 import { KeyValueStore } from '../../src/infrastructure/redis/key-value.store.js';
 import { REDIS_CLIENT } from '../../src/infrastructure/redis/redis.module.js';
 import { SessionsRepository } from '../../src/modules/auth/application/sessions.repository.js';
+import { TaskEventBus, TaskEventStore } from '../../src/modules/events/application/event-ports.js';
 import { GitHubAppClient } from '../../src/modules/github/application/github-app.client.js';
 import { InstallationsRepository } from '../../src/modules/github/application/installations.repository.js';
 import { RepositoriesRepository } from '../../src/modules/repositories/application/repositories.repository.js';
@@ -20,6 +21,7 @@ import { InMemoryInstallationsRepository } from '../fakes/in-memory-installation
 import { InMemoryKeyValueStore } from '../fakes/in-memory-key-value.store.js';
 import { InMemoryRepositoriesRepository } from '../fakes/in-memory-repositories.repository.js';
 import { InMemorySessionsRepository } from '../fakes/in-memory-sessions.repository.js';
+import { InMemoryTaskEventBus, InMemoryTaskEventStore } from '../fakes/in-memory-task-events.js';
 import { InMemoryTaskQueue } from '../fakes/in-memory-task-queue.js';
 import { InMemoryTasksRepository } from '../fakes/in-memory-tasks.repository.js';
 import { InMemoryUsersRepository } from '../fakes/in-memory-users.repository.js';
@@ -45,6 +47,8 @@ export async function createTestApp(
 
   // Installations and repositories share storage, as their tables do in Postgres.
   const installations = new InMemoryInstallationsRepository();
+  // Events add their cost to the task, as the database transaction does.
+  const tasks = new InMemoryTasksRepository();
 
   const moduleRef = await Test.createTestingModule({
     imports: [ApiModule],
@@ -67,7 +71,11 @@ export async function createTestApp(
     .overrideProvider(GitHubAppClient)
     .useValue(new FakeGitHubAppClient())
     .overrideProvider(TasksRepository)
-    .useValue(new InMemoryTasksRepository())
+    .useValue(tasks)
+    .overrideProvider(TaskEventStore)
+    .useValue(new InMemoryTaskEventStore(tasks))
+    .overrideProvider(TaskEventBus)
+    .useValue(new InMemoryTaskEventBus())
     .overrideProvider(TaskQueue)
     .useValue(new InMemoryTaskQueue())
     .compile();

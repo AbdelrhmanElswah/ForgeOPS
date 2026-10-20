@@ -169,18 +169,40 @@ model Task {
   /// Accumulated LLM cost. Decimal, never float, because it is money.
   costUsd           Decimal            @default(0) @map("cost_usd") @db.Decimal(10, 4)
   cancelRequestedAt DateTime?          @map("cancel_requested_at") @db.Timestamptz(3)
+  /// Last event sequence number issued for this task (atomic counter, see agent_events.seq).
+  eventSeq          Int                @default(0) @map("event_seq")
   startedAt         DateTime?          @map("started_at") @db.Timestamptz(3)
   finishedAt        DateTime?          @map("finished_at") @db.Timestamptz(3)
   createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt         DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   /// Restrict: a repository with task history cannot be hard-deleted by accident.
-  repository Repository @relation(fields: [repositoryId], references: [id], onDelete: Restrict)
+  repository Repository   @relation(fields: [repositoryId], references: [id], onDelete: Restrict)
+  events     AgentEvent[]
 
   /// Serves "my tasks, newest first", the dashboard's main query.
   @@index([userId, createdAt(sort: Desc)])
   @@index([repositoryId])
   @@index([status])
   @@map("tasks")
+}
+
+/// Append-only timeline of a task (docs/ARCHITECTURE.md §11). Also the "outbox" for live
+/// updates: Redis pub/sub only accelerates delivery; a client that missed a message replays
+/// it from here by sequence number.
+model AgentEvent {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  taskId    String   @map("task_id") @db.Uuid
+  /// 1, 2, 3… per task, gap-free: issued from tasks.event_seq in the same transaction.
+  seq       Int
+  type      String
+  payload   Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  /// Also the index for "events of task X after seq N", the replay query.
+  @@unique([taskId, seq])
+  @@map("agent_events")
 }

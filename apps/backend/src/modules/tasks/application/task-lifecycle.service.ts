@@ -1,7 +1,8 @@
 import { isTerminalStatus, type TaskStatus } from '@forgeops/contracts';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
 import { ConflictError, NotFoundError } from '../../../common/errors/domain-error.js';
+import { TaskEventsService } from '../../events/application/task-events.service.js';
 import { assertTransition } from '../domain/task-status.js';
 import { type TaskRecord, TasksRepository, type TransitionPatch } from './tasks.repository.js';
 
@@ -18,7 +19,12 @@ const MAX_ATTEMPTS = 3;
  */
 @Injectable()
 export class TaskLifecycleService {
-  constructor(private readonly tasks: TasksRepository) {}
+  private readonly logger = new Logger(TaskLifecycleService.name);
+
+  constructor(
+    private readonly tasks: TasksRepository,
+    private readonly events: TaskEventsService,
+  ) {}
 
   async transition(
     taskId: string,
@@ -37,9 +43,27 @@ export class TaskLifecycleService {
         ...patch,
       });
       if (updated) {
+        await this.recordStatus(updated);
         return updated;
       }
     }
     throw new ConflictError('The task was changed concurrently; please retry.');
+  }
+
+  /**
+   * The status itself is already committed; the event only feeds the live timeline. A failed
+   * write is logged rather than thrown, so it can't undo or block a valid status change
+   * (clients still see the status through GET /tasks/:id).
+   */
+  private async recordStatus(task: TaskRecord): Promise<void> {
+    await this.events
+      .record(task.id, {
+        type: 'status.changed',
+        status: task.status,
+        failureReason: task.failureReason,
+      })
+      .catch((error: unknown) => {
+        this.logger.error({ err: error, taskId: task.id }, 'Could not record status event');
+      });
   }
 }

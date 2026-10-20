@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { inMemoryTaskEvents } from '../../../../test/fakes/in-memory-task-events.js';
 import { InMemoryTasksRepository } from '../../../../test/fakes/in-memory-tasks.repository.js';
 import { ConflictError } from '../../../common/errors/domain-error.js';
 import { InvalidStateTransitionError } from '../domain/task-status.js';
@@ -12,7 +13,7 @@ describe('TaskLifecycleService', () => {
 
   beforeEach(async () => {
     tasks = new InMemoryTasksRepository();
-    lifecycle = new TaskLifecycleService(tasks);
+    lifecycle = new TaskLifecycleService(tasks, inMemoryTaskEvents(tasks).service);
     taskId = (
       await tasks.create({ userId: 'u1', repositoryId: 'r1', instruction: 'x', baseBranch: 'main' })
     ).id;

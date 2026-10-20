@@ -12,6 +12,10 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { FakeGitHubAppClient } from '../../../../test/fakes/fake-github-app.client.js';
 import { InMemoryInstallationsRepository } from '../../../../test/fakes/in-memory-installations.repository.js';
 import { InMemoryRepositoriesRepository } from '../../../../test/fakes/in-memory-repositories.repository.js';
+import {
+  type InMemoryTaskEventStore,
+  inMemoryTaskEvents,
+} from '../../../../test/fakes/in-memory-task-events.js';
 import { InMemoryTasksRepository } from '../../../../test/fakes/in-memory-tasks.repository.js';
 import type { AppConfig } from '../../../common/config/app-config.service.js';
 import { NotFoundError } from '../../../common/errors/domain-error.js';
@@ -63,20 +67,24 @@ describe('AgentOrchestratorService', () => {
   let checkpointer: MemorySaver;
   let repositoryId: string;
   let config: Record<string, number | string>;
+  let eventStore: InMemoryTaskEventStore;
 
   function orchestrator() {
     const installations = new InMemoryInstallationsRepository();
     const repositories = new InMemoryRepositoriesRepository(installations);
     void installations.saveForUser('user-1', github.snapshot(1), new Date());
     repositoryId = [...installations.repositories.values()][0]?.id ?? '';
+    const events = inMemoryTaskEvents(tasks);
+    eventStore = events.store;
     return new AgentOrchestratorService(
       tasks,
-      new TaskLifecycleService(tasks),
+      new TaskLifecycleService(tasks, events.service),
       repositories,
       github,
       workspaces,
       llm,
       checkpointer,
+      events.service,
       { get: (key: string) => config[key] } as unknown as AppConfig,
     );
   }
@@ -125,6 +133,35 @@ describe('AgentOrchestratorService', () => {
       startedAt: expect.any(Date) as Date,
     });
     expect((workspaces as FakeWorkspaces).closed).toBe(1);
+  });
+
+  it('records the timeline the dashboard shows, and the task cost', async () => {
+    const { service, taskId } = await queuedTask();
+    llm.answer('planner', plan).turn('investigator', submit('low'));
+
+    await service.run(taskId);
+
+    const timeline = (eventStore.events.get(taskId) ?? []).map((event) => {
+      if (event.type === 'status.changed') return `status:${event.status}`;
+      if (event.type === 'node.started') return `start:${event.node}`;
+      if (event.type === 'node.completed') return `done:${event.node}`;
+      if (event.type === 'tool.called') return `tool:${event.tool}`;
+      return `llm:${event.role}`;
+    });
+    expect(timeline).toEqual([
+      'status:planning',
+      'start:planner',
+      'llm:planner',
+      'done:planner',
+      'status:investigating',
+      'start:investigator',
+      'llm:investigator',
+      'tool:submit_findings',
+      'done:investigator',
+      'status:failed',
+    ]);
+    // Two model calls at FAKE_USAGE.costUsd each, accumulated on the task.
+    expect(stored(taskId)?.costUsd).toBeCloseTo(2 * (FAKE_USAGE.costUsd ?? 0), 10);
   });
 
   it('ends confident investigations honestly until the implementer exists (Phase 5)', async () => {

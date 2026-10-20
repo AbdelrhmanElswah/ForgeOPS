@@ -23,12 +23,13 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 
 import { AppConfig } from '../../../common/config/app-config.service.js';
 import { NotFoundError } from '../../../common/errors/domain-error.js';
+import { TaskEventsService } from '../../events/application/task-events.service.js';
 import { GitHubAppClient } from '../../github/application/github-app.client.js';
 import { RepositoriesRepository } from '../../repositories/application/repositories.repository.js';
 import { TaskLifecycleService } from '../../tasks/application/task-lifecycle.service.js';
 import { TasksRepository } from '../../tasks/application/tasks.repository.js';
 import { InvalidStateTransitionError } from '../../tasks/domain/task-status.js';
-import { LoggingEventSink } from '../infrastructure/logging-event-sink.js';
+import { RecordingEventSink } from '../infrastructure/recording-event-sink.js';
 import { CHECKPOINTER, LLM_CLIENT } from '../orchestrator.tokens.js';
 import {
   type OpenWorkspace,
@@ -63,6 +64,7 @@ export class AgentOrchestratorService {
     private readonly workspaces: WorkspaceFactory,
     @Inject(LLM_CLIENT) private readonly llm: LlmClient,
     @Inject(CHECKPOINTER) private readonly checkpointer: BaseCheckpointSaver,
+    private readonly events: TaskEventsService,
     private readonly config: AppConfig,
   ) {}
 
@@ -112,7 +114,7 @@ export class AgentOrchestratorService {
       const graph = buildAgentGraph(
         {
           llm: this.llm,
-          events: new LoggingEventSink(taskId),
+          events: new RecordingEventSink(taskId, this.events),
           limits: this.limits(),
           workspace: workspace.reader,
           stages: this.stageGate(taskId),
