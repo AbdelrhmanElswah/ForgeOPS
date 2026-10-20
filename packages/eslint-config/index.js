@@ -54,9 +54,18 @@ export function forgeopsConfig({ tsconfigRootDir, boundary, extend = [] }) {
       rules: {
         eqeqeq: ['error', 'always'],
         'no-console': 'warn',
-        ...(boundary && { 'no-restricted-imports': ['error', { patterns: boundaries[boundary] }] }),
       },
     },
+
+    // Boundaries apply to application code only; tooling files (eslint.config.js, …) may import tooling.
+    ...(boundary
+      ? [
+          {
+            files: ['src/**'],
+            rules: { 'no-restricted-imports': ['error', { patterns: boundaries[boundary] }] },
+          },
+        ]
+      : []),
 
     ...extend,
 
