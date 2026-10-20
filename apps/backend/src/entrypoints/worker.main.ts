@@ -1,0 +1,31 @@
+import 'reflect-metadata';
+
+import { Logger } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+
+import { AppConfig } from '../common/config/app-config.service.js';
+import { WorkerModule } from '../worker.module.js';
+
+async function bootstrap(): Promise<void> {
+  // An application context is the Nest DI container without an HTTP server.
+  const app = await NestFactory.createApplicationContext(WorkerModule);
+  app.enableShutdownHooks();
+
+  const concurrency = app.get(AppConfig).get('WORKER_CONCURRENCY');
+  Logger.log(`Worker started (concurrency: ${concurrency})`, 'Bootstrap');
+
+  // Temporary: nothing holds the event loop open until BullMQ consumers exist (step 4.6).
+  // Without this the process would exit immediately after booting.
+  const keepAlive = setInterval(() => undefined, 60_000);
+  process.once('SIGTERM', () => {
+    clearInterval(keepAlive);
+  });
+  process.once('SIGINT', () => {
+    clearInterval(keepAlive);
+  });
+}
+
+bootstrap().catch((error: unknown) => {
+  Logger.error(error, 'Bootstrap');
+  process.exit(1);
+});

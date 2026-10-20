@@ -11,6 +11,8 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "dev:api": "turbo run build --filter=@forgeops/backend^... && pnpm --filter @forgeops/backend dev:api",
+    "dev:worker": "turbo run build --filter=@forgeops/backend^... && pnpm --filter @forgeops/backend dev:worker",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",

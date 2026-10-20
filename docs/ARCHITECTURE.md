@@ -181,7 +181,7 @@ modules/tasks/
 | Concern       | Implementation                                                                                                                                   |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Config        | `@nestjs/config` + Zod schema → app refuses to boot on invalid env                                                                               |
-| Validation    | `nestjs-zod`: DTOs created from `packages/contracts` schemas; also generates Swagger                                                             |
+| Validation    | own `ZodValidationPipe` with `packages/contracts` schemas (nestjs-zod lacks NestJS 12 support); Zod `toJSONSchema()` feeds Swagger               |
 | Errors        | Domain errors → `DomainExceptionFilter` → RFC 7807 `application/problem+json`                                                                    |
 | AuthN         | Access JWT (15 min, httpOnly cookie) + rotating refresh token (hashed in `sessions`)                                                             |
 | AuthZ         | `JwtAuthGuard` globally + ownership policies (`TaskAccessPolicy`) in use cases. Every query is scoped by `userId`.                               |
@@ -556,15 +556,15 @@ discriminated union in `packages/contracts` (`node.started`, `tool.called`, `too
 
 ## 15. Testing strategy
 
-| Layer         | Tooling                                 | Examples                                                                              |
-| ------------- | --------------------------------------- | ------------------------------------------------------------------------------------- |
-| Unit (domain) | Vitest (packages), Jest (NestJS)        | state machine transitions, PathGuard, DiffGuard, diff hashing, budgets                |
-| Unit (agents) | Vitest + `FakeChatModel` + port fakes   | routing after test failure, retry limits, interrupt/resume, invalid LLM JSON handling |
-| Integration   | Jest + Testcontainers (Postgres, Redis) | create task → job enqueued, approval flow, SSE replay, checkpoint resume              |
-| GitHub        | Octokit mocked with `nock`              | idempotent publish, expired token refresh, webhook signature                          |
-| Sandbox       | real Docker (CI job)                    | timeout kill, network blocked, path escape blocked                                    |
-| E2E           | Playwright                              | create task → watch timeline → approve → PR link (fake LLM + fake GitHub)             |
-| Evals         | `evals/` runner                         | real LLM on fixture repos with seeded bugs → success rate, cost, time                 |
+| Layer         | Tooling                                   | Examples                                                                              |
+| ------------- | ----------------------------------------- | ------------------------------------------------------------------------------------- |
+| Unit (domain) | Vitest (+ SWC plugin for NestJS)          | state machine transitions, PathGuard, DiffGuard, diff hashing, budgets                |
+| Unit (agents) | Vitest + `FakeChatModel` + port fakes     | routing after test failure, retry limits, interrupt/resume, invalid LLM JSON handling |
+| Integration   | Vitest + Testcontainers (Postgres, Redis) | create task → job enqueued, approval flow, SSE replay, checkpoint resume              |
+| GitHub        | Octokit mocked with `nock`                | idempotent publish, expired token refresh, webhook signature                          |
+| Sandbox       | real Docker (CI job)                      | timeout kill, network blocked, path escape blocked                                    |
+| E2E           | Playwright                                | create task → watch timeline → approve → PR link (fake LLM + fake GitHub)             |
+| Evals         | `evals/` runner                           | real LLM on fixture repos with seeded bugs → success rate, cost, time                 |
 
 ---
 
