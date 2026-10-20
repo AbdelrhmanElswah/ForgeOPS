@@ -558,7 +558,7 @@ discriminated union in `packages/contracts` (`node.started`, `tool.called`, `too
 
 | Layer         | Tooling                                 | Examples                                                                              |
 | ------------- | --------------------------------------- | ------------------------------------------------------------------------------------- |
-| Unit (domain) | Jest                                    | state machine transitions, PathGuard, DiffGuard, diff hashing, budgets                |
+| Unit (domain) | Vitest (packages), Jest (NestJS)        | state machine transitions, PathGuard, DiffGuard, diff hashing, budgets                |
 | Unit (agents) | Vitest + `FakeChatModel` + port fakes   | routing after test failure, retry limits, interrupt/resume, invalid LLM JSON handling |
 | Integration   | Jest + Testcontainers (Postgres, Redis) | create task → job enqueued, approval flow, SSE replay, checkpoint resume              |
 | GitHub        | Octokit mocked with `nock`              | idempotent publish, expired token refresh, webhook signature                          |
