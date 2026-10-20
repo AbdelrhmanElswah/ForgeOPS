@@ -20,6 +20,7 @@
     "infra:up": "docker compose -f infra/docker/docker-compose.yml up -d --wait",
     "infra:down": "docker compose -f infra/docker/docker-compose.yml down",
     "infra:logs": "docker compose -f infra/docker/docker-compose.yml logs -f",
+    "github:create-app": "node infra/github-app/create-app.mjs",
     "db:migrate": "pnpm --filter @forgeops/backend db:migrate",
     "db:seed": "pnpm --filter @forgeops/backend db:seed",
     "db:studio": "pnpm --filter @forgeops/backend db:studio",
