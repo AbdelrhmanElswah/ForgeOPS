@@ -1,3 +1,11 @@
 packages:
   - apps/*
   - packages/*
+
+# pnpm blocks dependency install scripts by default (supply-chain protection).
+# Only these packages may run them; each one only sets up its native binary.
+allowBuilds:
+  '@swc/core': true
+  esbuild: true
+  prisma: true
+  '@prisma/engines': true

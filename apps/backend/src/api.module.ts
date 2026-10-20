@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { AppConfigModule } from './common/config/app-config.module.js';
+import { PrismaModule } from './infrastructure/prisma/prisma.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 
 /**
@@ -8,6 +9,6 @@ import { HealthModule } from './modules/health/health.module.js';
  * It never runs agents or user code. That work is queued for the Worker.
  */
 @Module({
-  imports: [AppConfigModule, HealthModule],
+  imports: [AppConfigModule, PrismaModule, HealthModule],
 })
 export class ApiModule {}

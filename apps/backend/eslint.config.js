@@ -11,5 +11,10 @@ export default forgeopsConfig({
         '@typescript-eslint/no-extraneous-class': ['error', { allowWithDecorator: true }],
       },
     },
+    {
+      // CLI scripts (seed, maintenance) talk to the terminal, not to the structured logger.
+      files: ['prisma/**/*.ts'],
+      rules: { 'no-console': 'off' },
+    },
   ],
 });

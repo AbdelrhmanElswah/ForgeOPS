@@ -1,0 +1,179 @@
+// ForgeOps database schema. See docs/ARCHITECTURE.md §10.
+// Conventions:
+//   - Models are PascalCase in code, tables/columns are snake_case in Postgres (@@map / @map).
+//   - Ids are UUID v7: globally unique AND time-ordered, so they double as pagination cursors.
+//   - Timestamps are timestamptz with millisecond precision.
+//   - GitHub's numeric ids are BigInt: they already exceed what a 32-bit int can hold.
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ── Enums (must stay in sync with packages/contracts, enforced by enum-sync.test.ts) ──
+
+enum TaskStatus {
+  queued
+  planning
+  investigating
+  implementing
+  verifying
+  awaiting_approval
+  publishing
+  completed
+  rejected
+  failed
+  cancelled
+
+  @@map("task_status")
+}
+
+enum TaskFailureReason {
+  budget_exceeded
+  tests_failed
+  invalid_llm_output
+  stale_base
+  sandbox_error
+  github_error
+  guard_violation
+  internal_error
+
+  @@map("task_failure_reason")
+}
+
+enum GitHubAccountType {
+  User
+  Organization
+
+  @@map("github_account_type")
+}
+
+// ── Identity ────────────────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  /// Always stored lower-cased by the application, so the unique index is effectively case-insensitive.
+  email        String   @unique
+  /// argon2id hash. Null for users who only sign in through GitHub.
+  passwordHash String?  @map("password_hash")
+  displayName  String?  @map("display_name")
+  githubUserId BigInt?  @unique @map("github_user_id")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  sessions      Session[]
+  installations GitHubInstallation[]
+  tasks         Task[]
+
+  @@map("users")
+}
+
+/// One row per refresh token. Tokens rotate on every refresh; presenting an already-rotated
+/// token signals theft, and the whole chain is revoked (refresh-token reuse detection).
+model Session {
+  id               String    @id @default(uuid(7)) @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  /// SHA-256 of the refresh token. The raw token only ever exists in the user's httpOnly cookie.
+  refreshTokenHash String    @unique @map("refresh_token_hash")
+  /// Set when this token was rotated, pointing at its successor.
+  replacedById     String?   @unique @map("replaced_by_id") @db.Uuid
+  userAgent        String?   @map("user_agent")
+  ipAddress        String?   @map("ip_address")
+  expiresAt        DateTime  @map("expires_at") @db.Timestamptz(3)
+  revokedAt        DateTime? @map("revoked_at") @db.Timestamptz(3)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replacedBy Session? @relation("SessionRotation", fields: [replacedById], references: [id], onDelete: SetNull)
+  replaces   Session? @relation("SessionRotation")
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+// ── GitHub ──────────────────────────────────────────────────────────────────
+
+/// An installation of the ForgeOps GitHub App on a user or organisation account.
+/// The App's private key is NOT stored here; it lives in the secret store.
+model GitHubInstallation {
+  id             String            @id @default(uuid(7)) @db.Uuid
+  /// GitHub's installation id, used to mint short-lived installation tokens.
+  installationId BigInt            @unique @map("installation_id")
+  accountLogin   String            @map("account_login")
+  accountType    GitHubAccountType @map("account_type")
+  /// The ForgeOps user who connected this installation and may use its repositories.
+  userId         String            @map("user_id") @db.Uuid
+  suspendedAt    DateTime?         @map("suspended_at") @db.Timestamptz(3)
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  repositories Repository[]
+
+  @@index([userId])
+  @@map("github_installations")
+}
+
+model Repository {
+  id             String    @id @default(uuid(7)) @db.Uuid
+  installationId String    @map("installation_id") @db.Uuid
+  /// Stable across renames and transfers, unlike owner/name.
+  githubRepoId   BigInt    @unique @map("github_repo_id")
+  owner          String
+  name           String
+  defaultBranch  String    @map("default_branch")
+  isPrivate      Boolean   @map("is_private")
+  /// Human-controlled run settings: test command, limits, denied paths. Validated with Zod on write.
+  settings       Json      @default("{}")
+  /// Set when the repository is removed from the installation; history (tasks) is kept.
+  removedAt      DateTime? @map("removed_at") @db.Timestamptz(3)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  installation GitHubInstallation @relation(fields: [installationId], references: [id], onDelete: Restrict)
+  tasks        Task[]
+
+  @@index([installationId])
+  @@index([owner, name])
+  @@map("repositories")
+}
+
+// ── Tasks ───────────────────────────────────────────────────────────────────
+
+model Task {
+  id                String             @id @default(uuid(7)) @db.Uuid
+  userId            String             @map("user_id") @db.Uuid
+  repositoryId      String             @map("repository_id") @db.Uuid
+  instruction       String
+  baseBranch        String             @map("base_branch")
+  /// Pinned when the run starts, so every later step works against the same code.
+  baseCommitSha     String?            @map("base_commit_sha") @db.Char(40)
+  status            TaskStatus         @default(queued)
+  /// Optimistic-locking counter: every status change is `UPDATE ... WHERE version = $expected`.
+  version           Int                @default(0)
+  failureReason     TaskFailureReason? @map("failure_reason")
+  failureDetail     String?            @map("failure_detail")
+  /// Accumulated LLM cost. Decimal, never float, because it is money.
+  costUsd           Decimal            @default(0) @map("cost_usd") @db.Decimal(10, 4)
+  cancelRequestedAt DateTime?          @map("cancel_requested_at") @db.Timestamptz(3)
+  startedAt         DateTime?          @map("started_at") @db.Timestamptz(3)
+  finishedAt        DateTime?          @map("finished_at") @db.Timestamptz(3)
+  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Restrict: a repository with task history cannot be hard-deleted by accident.
+  repository Repository @relation(fields: [repositoryId], references: [id], onDelete: Restrict)
+
+  /// Serves "my tasks, newest first", the dashboard's main query.
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([repositoryId])
+  @@index([status])
+  @@map("tasks")
+}

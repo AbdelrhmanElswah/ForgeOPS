@@ -22,6 +22,7 @@ export function forgeopsConfig({ tsconfigRootDir, boundary, extend = [] }) {
       '**/coverage/**',
       '**/.turbo/**',
       '**/node_modules/**',
+      '**/src/generated/**',
     ]),
 
     js.configs.recommended,
