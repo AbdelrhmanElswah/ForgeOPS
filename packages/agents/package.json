@@ -35,12 +35,14 @@
     "@forgeops/contracts": "workspace:*",
     "@langchain/core": "^1.2.18",
     "@langchain/langgraph": "^1.5.1",
+    "picomatch": "^4.0.7",
     "zod": "^4.6.7"
   },
   "devDependencies": {
     "@forgeops/eslint-config": "workspace:*",
     "@forgeops/tsconfig": "workspace:*",
     "@types/node": "^24.19.2",
+    "@types/picomatch": "^4.0.3",
     "eslint": "^10.13.0",
     "typescript": "~6.0.3",
     "vitest": "^5.0.5"
