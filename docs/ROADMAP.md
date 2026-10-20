@@ -21,8 +21,8 @@ Architecture reference: [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ## Phase 1 — Foundation (week 1) ✅
 
-> **Status:** code complete. Steps 1.2 and 1.5 were verified in CI (Postgres service container);
-> they still need a local run once Docker Desktop is installed: `pnpm infra:up && pnpm db:migrate && pnpm db:seed`.
+> **Status:** code complete. The CI `database` job verifies 1.5 (migrations + seed) on a real Postgres;
+> 1.2 (Docker Compose) still needs a local run once Docker Desktop is installed: `pnpm infra:up && pnpm db:migrate && pnpm db:seed`.
 
 **Goal:** monorepo, infrastructure, and an authenticated, documented API.
 
