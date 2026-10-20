@@ -78,8 +78,8 @@ because the agents' tools read from the workspace.)
 
 | Step | Build                                                                                        | Concepts                              | Done when                                              |
 | ---- | -------------------------------------------------------------------------------------------- | ------------------------------------- | ------------------------------------------------------ |
-| 4.1  | `packages/agents` skeleton: state annotation, ports, `FakeChatModel`                         | ports & adapters                      | package tests run with no infrastructure               |
-| 4.2  | `LlmFactory` (provider adapter, per-role models) + cost/usage callback                       | strategy + factory                    | real model answers a structured-output call            |
+| 4.1  | `packages/agents` skeleton: state annotation, ports, `FakeLlmClient`                         | ports & adapters                      | package tests run with no infrastructure               |
+| 4.2  | `LlmClient` port + Claude adapter (official SDK, per-role models) + cost ledger              | adapter + strategy                    | real model answers a structured-output call            |
 | 4.3  | Tool registry + `ToolPolicy` pipeline + budgets                                              | chain of responsibility               | policy unit tests                                      |
 | 4.4  | `planner` node (structured `Plan`, Zod-validated, retry on invalid output)                   | structured outputs                    | plan produced for the fixture bug                      |
 | 4.5  | `investigator` node (bounded tool loop, evidence-backed `Findings`)                          | ReAct loop with limits                | finds the seeded root cause                            |

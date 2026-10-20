@@ -37,6 +37,19 @@ export const boundaries = {
       message:
         'packages/agents must not import infrastructure. Define a port in src/ports instead.',
     },
+    {
+      group: ['@anthropic-ai/*', 'openai', '@langchain/anthropic', '@langchain/openai'],
+      message:
+        'Model SDKs belong in an LLM adapter (src/llm/<provider>/). Nodes use the LlmClient port.',
+    },
+  ],
+
+  // An LLM adapter may use its provider SDK, but still no other infrastructure.
+  agentsLlmAdapter: [
+    {
+      group: [...infrastructure, '@forgeops/backend', '@forgeops/web', 'next', 'next/*', 'react'],
+      message: 'LLM adapters translate a provider SDK to the LlmClient port, nothing more.',
+    },
   ],
 
   // The frontend talks to the backend over HTTP only, using shared contracts.

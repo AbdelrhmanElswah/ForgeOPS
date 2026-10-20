@@ -56,7 +56,7 @@ ForgeOps combines three well-known styles, each solving a specific problem:
    (`tasks`, `approvals`, `github`, …) and **two entrypoints**: `api.main.ts` and `worker.main.ts`.
    You get simple local development and shared code, while the worker scales separately.
 2. **Hexagonal / Ports & Adapters** (inside complex modules and the agents package) —
-   business logic depends on _interfaces_ (ports) such as `LlmFactory`, `SandboxPort`, `GitHubPort`,
+   business logic depends on _interfaces_ (ports) such as `LlmClient`, `SandboxPort`, `GitHubPort`,
    `TaskLifecyclePort`. NestJS provides the _adapters_ (Docker, Octokit, Prisma). This is why the
    agent graph can be unit-tested with fakes and no Docker, GitHub, or real LLM.
 3. **Event-driven workflow** (runtime) — HTTP requests enqueue jobs and return `202 Accepted`;
@@ -131,7 +131,8 @@ forgeops/
 │  │     ├─ prompts/            versioned system prompts per role
 │  │     ├─ outputs/            Zod schemas for structured LLM outputs
 │  │     ├─ ports/              interfaces the backend must implement
-│  │     └─ testing/            FakeChatModel, in-memory port fakes
+│  │     ├─ llm/anthropic/      Claude adapter (the only place importing a model SDK)
+│  │     └─ testing/            FakeLlmClient, in-memory port fakes
 │  ├─ tsconfig/                 shared TS configs
 │  └─ eslint-config/            shared lint rules + boundary rules
 ├─ infra/
@@ -273,9 +274,10 @@ file contents. Large data (diffs, logs) goes to the artifact store, and the stat
 ### 6.3 Ports (what the backend must provide)
 
 ```ts
-interface LlmFactory {
-  forRole(role: AgentRole): BaseChatModel;
-} // provider adapter
+interface LlmClient {
+  generateStructured(request): { output; usage }; // answer must match a Zod schema
+  respond(request): LlmTurn; // one tool-using turn; the node drives the loop
+} // provider adapter (packages/agents/src/ports/llm.port.ts)
 interface RepoReaderPort {
   tree();
   readFile(path, range?);
@@ -310,10 +312,27 @@ interface ApprovalPort {
 
 ### 6.4 Provider adapter
 
-LangChain chat models (`@langchain/anthropic`, `@langchain/openai`, …) already share one interface
-(`BaseChatModel` with `.bindTools()` and `.withStructuredOutput(zodSchema)`). `LlmFactory` reads
-config such as `LLM_PROVIDER` and `LLM_MODEL_<ROLE>` and returns the right model. Switching providers
-is a config change. A `FakeChatModel` with scripted responses powers deterministic tests.
+Nodes talk to models only through the `LlmClient` port, which we own. Each provider gets an adapter
+in `packages/agents/src/llm/<provider>/`, the only folder allowed to import a model SDK (lint-enforced).
+LangGraph is used for the graph, checkpoints and interrupts; model calls do not go through LangChain
+wrappers, so current API features are used directly instead of waiting for a wrapper to catch up.
+
+**Claude adapter** (`@forgeops/agents/llm/anthropic`, official `@anthropic-ai/sdk`):
+
+- **Model per role:** every role defaults to `claude-opus-5-5`; each can be overridden with config
+  (e.g. a cheaper model for planning). Changing a role's model is a deliberate cost/quality decision,
+  measured with the evals in Phase 8.
+- **Effort per role** (`output_config.effort`); thinking stays at the model's adaptive default.
+- **Structured outputs** (`output_config.format` from the Zod schema), then validated again with Zod.
+  `stop_reason` is checked before parsing, so truncation and refusals are never mistaken for bad JSON.
+- **Strict tools** (`strict: true`); no forced `tool_choice` (current models reject it).
+- **Refusals** become `LlmRefusalError` (with category); server-side fallback (`fallbacks: "default"`)
+  is on by default.
+- **Assistant turns are replayed verbatim**, so thinking blocks are passed back unchanged.
+- **Cost ledger:** usage is priced by the model that actually served the request (it differs after a
+  fallback); an unknown model is priced `null`, never as free.
+
+`FakeLlmClient` (`@forgeops/agents/testing`) scripts answers per role for deterministic tests.
 
 ### 6.5 Tools and the policy layer
 
@@ -550,7 +569,7 @@ discriminated union in `packages/contracts` (`node.started`, `tool.called`, `too
 - **Traces:** OpenTelemetry. A span tree per task: job → node → LLM call / tool call / sandbox run.
 - **Metrics (from DB + traces):** task completion rate, retries per task, cost per task, time per task,
   duplicate PR count (must be 0), and resume-after-crash success.
-- **Cost ledger:** a LangChain callback records token usage per LLM call → `agent_events` + `tasks.costUsd`.
+- **Cost ledger:** the LLM adapter prices each call (`LlmUsage.costUsd`) → `agent_events` + `tasks.costUsd`.
 
 ---
 
@@ -559,7 +578,7 @@ discriminated union in `packages/contracts` (`node.started`, `tool.called`, `too
 | Layer         | Tooling                                   | Examples                                                                              |
 | ------------- | ----------------------------------------- | ------------------------------------------------------------------------------------- |
 | Unit (domain) | Vitest (+ SWC plugin for NestJS)          | state machine transitions, PathGuard, DiffGuard, diff hashing, budgets                |
-| Unit (agents) | Vitest + `FakeChatModel` + port fakes     | routing after test failure, retry limits, interrupt/resume, invalid LLM JSON handling |
+| Unit (agents) | Vitest + `FakeLlmClient` + port fakes     | routing after test failure, retry limits, interrupt/resume, invalid LLM JSON handling |
 | Integration   | Vitest + Testcontainers (Postgres, Redis) | create task → job enqueued, approval flow, SSE replay, checkpoint resume              |
 | GitHub        | Octokit mocked with `nock`                | idempotent publish, expired token refresh, webhook signature                          |
 | Sandbox       | real Docker (CI job)                      | timeout kill, network blocked, path escape blocked                                    |
@@ -577,7 +596,7 @@ discriminated union in `packages/contracts` (`node.started`, `tool.called`, `too
 | Use Case / Application Service      | `modules/*/application`                                  | One class per business action; controllers stay thin      |
 | Repository                          | `infrastructure/prisma-*.repository.ts`                  | Domain is isolated from Prisma; easy to fake              |
 | State Machine                       | `tasks/domain/task-status.ts`                            | Illegal transitions become impossible, not just unlikely  |
-| Strategy + Factory                  | `LlmFactory`, per-role model selection                   | Change provider or model with config                      |
+| Strategy + Factory                  | `LlmClient` adapters, per-role model selection           | Change provider or model with config                      |
 | Adapter                             | Octokit, Docker, S3 wrappers                             | External APIs hidden behind project-shaped interfaces     |
 | Command / Message Queue             | BullMQ jobs                                              | Long work stays off the HTTP request; retries and backoff |
 | Transactional Outbox (lite)         | `agent_events` + Redis pub/sub                           | Reliable, replayable real-time events                     |
