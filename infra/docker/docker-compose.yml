@@ -1,0 +1,46 @@
+# Local development infrastructure for ForgeOps.
+#   pnpm infra:up     start (waits until every service is healthy)
+#   pnpm infra:down   stop (data is kept in named volumes)
+# Credentials here are for local development only.
+name: forgeops
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-forgeops}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-forgeops}
+      POSTGRES_DB: ${POSTGRES_DB:-forgeops}
+    ports:
+      # Bound to localhost only: the database is never exposed to your network.
+      - '127.0.0.1:${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      # Postgres 18 images keep data under /var/lib/postgresql/<major>/, so mount the parent.
+      - postgres-data:/var/lib/postgresql
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    # BullMQ requires `noeviction`: Redis must never silently drop queued jobs under memory pressure.
+    # AOF persistence keeps queued jobs across container restarts.
+    command: ['redis-server', '--appendonly', 'yes', '--maxmemory-policy', 'noeviction']
+    ports:
+      - '127.0.0.1:${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres-data:
+  redis-data:
