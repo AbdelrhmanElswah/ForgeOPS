@@ -15,16 +15,6 @@ async function bootstrap(): Promise<void> {
 
   const concurrency = app.get(AppConfig).get('WORKER_CONCURRENCY');
   Logger.log(`Worker started (concurrency: ${concurrency})`, 'Bootstrap');
-
-  // Temporary: nothing holds the event loop open until BullMQ consumers exist (step 4.6).
-  // Without this the process would exit immediately after booting.
-  const keepAlive = setInterval(() => undefined, 60_000);
-  process.once('SIGTERM', () => {
-    clearInterval(keepAlive);
-  });
-  process.once('SIGINT', () => {
-    clearInterval(keepAlive);
-  });
 }
 
 bootstrap().catch((error: unknown) => {

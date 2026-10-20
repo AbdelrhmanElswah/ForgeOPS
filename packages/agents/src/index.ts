@@ -1,3 +1,4 @@
+export * from './graph/build-graph.js';
 export * from './nodes/evidence.js';
 export * from './nodes/investigator.node.js';
 export * from './nodes/planner.node.js';
@@ -8,6 +9,7 @@ export * from './policies/path-guard.js';
 export * from './policies/untrusted-content.js';
 export * from './ports/events.port.js';
 export * from './ports/llm.port.js';
+export * from './ports/stage.port.js';
 export * from './ports/workspace.port.js';
 export * from './prompts/investigator.prompt.js';
 export * from './prompts/planner.prompt.js';

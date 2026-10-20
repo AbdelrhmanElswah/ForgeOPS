@@ -6,6 +6,7 @@ import { PlanSchema } from '../../outputs/plan.js';
 import {
   LlmInvalidOutputError,
   type LlmMessage,
+  LlmProviderError,
   LlmRefusalError,
   LlmTruncatedError,
 } from '../../ports/llm.port.js';
@@ -168,6 +169,36 @@ describe('ClaudeLlmClient', () => {
       });
 
       expect(api.requests[0]?.body).not.toHaveProperty('fallbacks');
+    });
+  });
+
+  describe('provider errors', () => {
+    function failingApi(status: number) {
+      const fetch = () =>
+        Promise.resolve(
+          new Response(JSON.stringify({ type: 'error', error: { type: 'error', message: 'x' } }), {
+            status,
+            headers: { 'content-type': 'application/json' },
+          }),
+        );
+      return new Anthropic({ apiKey: 'test-key', fetch, maxRetries: 0 });
+    }
+
+    it.each([
+      [429, true],
+      [529, true],
+      [500, true],
+      [401, false],
+      [400, false],
+    ])('classifies HTTP %i as retryable=%s', async (status, retryable) => {
+      const llm = new ClaudeLlmClient({ client: failingApi(status), models: DEFAULT_ROLE_MODELS });
+
+      const error = await llm
+        .respond({ role: 'investigator', system: '', messages: [userMessage], tools: [] })
+        .catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(LlmProviderError);
+      expect((error as LlmProviderError).retryable).toBe(retryable);
     });
   });
 

@@ -108,6 +108,25 @@ export class LlmTruncatedError extends LlmError {
   }
 }
 
+/**
+ * The provider failed to answer (network, rate limit, overload, bad credentials).
+ * `retryable` separates "try again later" (timeouts, 429, 5xx) from "retrying won't help"
+ * (401, 400): the worker retries the first kind and fails the task on the second.
+ */
+export class LlmProviderError extends LlmError {
+  constructor(
+    readonly status: number | null,
+    readonly retryable: boolean,
+    options?: ErrorOptions,
+  ) {
+    super(
+      `The model provider failed${status ? ` (HTTP ${String(status)})` : ''}${retryable ? '; retryable' : ''}.`,
+      null,
+      options,
+    );
+  }
+}
+
 /** Output did not match the required schema. */
 export class LlmInvalidOutputError extends LlmError {
   constructor(usage: LlmUsage | null, options?: ErrorOptions) {

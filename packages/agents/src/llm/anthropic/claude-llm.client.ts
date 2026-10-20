@@ -6,6 +6,7 @@ import {
   type LlmClient,
   LlmInvalidOutputError,
   type LlmMessage,
+  LlmProviderError,
   LlmRefusalError,
   type LlmToolCall,
   type LlmToolDefinition,
@@ -82,17 +83,19 @@ export class ClaudeLlmClient implements LlmClient {
     // parsing: a truncated answer must surface as truncation (not as "invalid JSON"), and the
     // usage of a failed call must still reach the cost ledger.
     const { type, schema } = betaZodOutputFormat(request.schema);
-    const response = await this.client.beta.messages.create(
-      {
-        model,
-        max_tokens: this.maxTokens,
-        system: request.system,
-        messages: toAnthropicMessages(request.messages),
-        output_config: { effort, format: { type, schema } },
-        ...this.fallbackParams(),
-      },
-      { signal: request.signal },
-    );
+    const response = await this.client.beta.messages
+      .create(
+        {
+          model,
+          max_tokens: this.maxTokens,
+          system: request.system,
+          messages: toAnthropicMessages(request.messages),
+          output_config: { effort, format: { type, schema } },
+          ...this.fallbackParams(),
+        },
+        { signal: request.signal },
+      )
+      .catch(translateApiError);
 
     const usage = toUsage(response);
     assertCompleted(response, usage);
@@ -116,18 +119,20 @@ export class ClaudeLlmClient implements LlmClient {
 
   async respond(request: TurnRequest): Promise<LlmTurn> {
     const { model, effort } = this.options.models[request.role];
-    const response = await this.client.beta.messages.create(
-      {
-        model,
-        max_tokens: this.maxTokens,
-        system: request.system,
-        messages: toAnthropicMessages(request.messages),
-        tools: request.tools.map(toAnthropicTool),
-        output_config: { effort },
-        ...this.fallbackParams(),
-      },
-      { signal: request.signal },
-    );
+    const response = await this.client.beta.messages
+      .create(
+        {
+          model,
+          max_tokens: this.maxTokens,
+          system: request.system,
+          messages: toAnthropicMessages(request.messages),
+          tools: request.tools.map(toAnthropicTool),
+          output_config: { effort },
+          ...this.fallbackParams(),
+        },
+        { signal: request.signal },
+      )
+      .catch(translateApiError);
 
     const usage = toUsage(response);
     assertCompleted(response, usage);
@@ -160,6 +165,28 @@ export class ClaudeLlmClient implements LlmClient {
       ? {}
       : { betas: [SERVER_SIDE_FALLBACK_BETA], fallbacks: 'default' as const };
   }
+}
+
+/**
+ * Maps SDK errors to the port's LlmProviderError. The SDK has already retried transient
+ * failures itself (maxRetries); whatever reaches here is classified for the worker:
+ * timeouts, conflicts, rate limits and 5xx are worth retrying later, other 4xx are not.
+ * A user abort (cancellation) is passed through untouched.
+ */
+function translateApiError(error: unknown): never {
+  if (error instanceof Anthropic.APIUserAbortError) {
+    throw error;
+  }
+  if (error instanceof Anthropic.APIConnectionError) {
+    throw new LlmProviderError(null, true, { cause: error });
+  }
+  if (error instanceof Anthropic.APIError) {
+    const status = typeof error.status === 'number' ? error.status : null;
+    const retryable =
+      status === null || status === 408 || status === 409 || status === 429 || status >= 500;
+    throw new LlmProviderError(status, retryable, { cause: error });
+  }
+  throw error;
 }
 
 function assertCompleted(response: BetaMessage, usage: LlmUsage): void {

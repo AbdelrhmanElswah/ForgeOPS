@@ -56,6 +56,14 @@ export class PrismaRepositoriesRepository extends RepositoriesRepository {
     return row && toRecord(row);
   }
 
+  async findForWorker(id: string): Promise<RepositoryRecord | null> {
+    const row = await this.prisma.repository.findFirst({
+      where: { id, removedAt: null, installation: { removedAt: null } },
+      select: REPOSITORY_FIELDS,
+    });
+    return row && toRecord(row);
+  }
+
   async listOwned(
     userId: string,
     { limit, cursor, search }: RepositoryListQuery,

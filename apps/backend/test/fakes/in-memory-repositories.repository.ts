@@ -25,6 +25,14 @@ export class InMemoryRepositoriesRepository extends RepositoriesRepository {
     return Promise.resolve(row ? this.toRecord(row) : null);
   }
 
+  findForWorker(id: string): Promise<RepositoryRecord | null> {
+    const row = [...this.installations.repositories.values()].find((repo) => {
+      const installation = this.installations.installations.get(repo.installationId);
+      return repo.id === id && repo.removedAt === null && installation?.removedAt === null;
+    });
+    return Promise.resolve(row ? this.toRecord(row) : null);
+  }
+
   listOwned(
     userId: string,
     { limit, cursor, search }: RepositoryListQuery,

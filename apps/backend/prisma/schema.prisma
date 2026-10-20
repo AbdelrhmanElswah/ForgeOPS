@@ -43,6 +43,8 @@ enum TaskFailureReason {
   github_error
   guard_violation
   internal_error
+  needs_human
+  model_refused
 
   @@map("task_failure_reason")
 }

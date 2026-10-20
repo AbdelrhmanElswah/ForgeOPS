@@ -26,6 +26,20 @@ export const EnvSchema = z
     ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().min(60).max(3600).default(900),
     REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(30),
 
+    // Agents. Every role defaults to LLM_MODEL; a per-role model is a deliberate cost/quality
+    // choice (measure it with the evals). The Anthropic SDK reads its own credentials
+    // (ANTHROPIC_API_KEY or an `ant auth login` profile).
+    LLM_MODEL: z.string().min(1).default('claude-opus-5-5'),
+    LLM_EFFORT: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).default('high'),
+    LLM_MODEL_PLANNER: z.string().min(1).optional(),
+    LLM_MODEL_INVESTIGATOR: z.string().min(1).optional(),
+    LLM_MODEL_IMPLEMENTER: z.string().min(1).optional(),
+    LLM_MODEL_REVIEWER: z.string().min(1).optional(),
+    /** Hard per-task ceilings; a run that would cross one stops with budget_exceeded. */
+    TASK_MAX_COST_USD: z.coerce.number().positive().max(100).default(5),
+    TASK_MAX_LLM_CALLS: z.coerce.number().int().min(1).max(500).default(40),
+    TASK_MAX_TOOL_CALLS: z.coerce.number().int().min(1).max(2000).default(150),
+
     // GitHub App (written by `pnpm github:create-app`). Optional as a group: without it the API
     // runs and GitHub features answer 503, but a half-configured app is rejected below.
     GITHUB_APP_ID: z.coerce.number().int().positive().optional(),

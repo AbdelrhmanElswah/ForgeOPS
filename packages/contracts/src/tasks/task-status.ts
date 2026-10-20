@@ -52,6 +52,10 @@ export const TASK_FAILURE_REASONS = [
   'github_error',
   'guard_violation',
   'internal_error',
+  /** The agents were not confident enough to change code: a person should look. */
+  'needs_human',
+  /** The model declined the request (safety policy). */
+  'model_refused',
 ] as const;
 
 export const TaskFailureReasonSchema = z.enum(TASK_FAILURE_REASONS);

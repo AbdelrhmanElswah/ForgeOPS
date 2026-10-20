@@ -28,6 +28,11 @@ export interface RepositoryListQuery {
  */
 export abstract class RepositoriesRepository {
   abstract findOwned(userId: string, id: string): Promise<RepositoryRecord | null>;
+  /**
+   * NOT owner-scoped: for the Worker, which acts on a task the API already authorised.
+   * HTTP handlers must use findOwned.
+   */
+  abstract findForWorker(id: string): Promise<RepositoryRecord | null>;
   abstract listOwned(
     userId: string,
     query: RepositoryListQuery,
