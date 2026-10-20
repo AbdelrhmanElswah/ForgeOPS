@@ -178,6 +178,33 @@ describe('ClaudeLlmClient', () => {
       input: z.strictObject({ path: z.string() }),
     };
 
+    it('closes nested objects, as strict tools require', async () => {
+      const api = fakeApi(message({ content: [{ type: 'text', text: 'ok' }] }));
+      const llm = new ClaudeLlmClient({ client: api.client, models: DEFAULT_ROLE_MODELS });
+
+      await llm.respond({
+        role: 'investigator',
+        system: '',
+        messages: [userMessage],
+        tools: [
+          {
+            name: 'submit',
+            description: 'Nested input',
+            input: z.object({ items: z.array(z.object({ path: z.string() })) }),
+          },
+        ],
+      });
+
+      const [tool] = api.requests[0]?.body.tools as {
+        input_schema: { additionalProperties: unknown; properties: { items: { items: unknown } } };
+      }[];
+      expect(tool?.input_schema.additionalProperties).toBe(false);
+      expect(tool?.input_schema.properties.items.items).toMatchObject({
+        type: 'object',
+        additionalProperties: false,
+      });
+    });
+
     it('declares tools as strict JSON schemas and maps tool calls', async () => {
       const api = fakeApi(
         message({

@@ -26,7 +26,7 @@ describe('PathGuard', () => {
       ['backslashes', 'src\\..\\..\\secret'],
       ['null byte', 'src/a.ts\0.png'],
       ['newline', 'src/a.ts\nother'],
-      ['empty', ''],
+
       ['too long', 'a/'.repeat(300)],
     ])('rejects %s', (_case, raw) => {
       expect(guard.check(raw, 'read').ok).toBe(false);

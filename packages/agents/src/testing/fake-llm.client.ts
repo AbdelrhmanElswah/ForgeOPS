@@ -2,6 +2,7 @@ import type { z } from 'zod';
 
 import {
   type LlmClient,
+  type LlmMessage,
   type LlmTurn,
   type LlmUsage,
   type StructuredRequest,
@@ -46,7 +47,7 @@ export class FakeLlmClient implements LlmClient {
   generateStructured<S extends z.ZodType>(
     request: StructuredRequest<S>,
   ): Promise<{ output: z.output<S>; usage: LlmUsage }> {
-    this.structuredRequests.push(request);
+    this.structuredRequests.push({ ...request, messages: snapshot(request.messages) });
     const next = this.dequeue(this.structured, request.role, 'answer');
     return Promise.resolve().then(() => {
       const value = resolve(next, request);
@@ -56,7 +57,9 @@ export class FakeLlmClient implements LlmClient {
   }
 
   respond(request: TurnRequest): Promise<LlmTurn> {
-    this.turnRequests.push(request);
+    // Record what was sent *at this moment*: callers keep appending to the same array, and a
+    // real client serialises the request when it is made.
+    this.turnRequests.push({ ...request, messages: snapshot(request.messages) });
     const next = this.dequeue(this.turns, request.role, 'turn');
     return Promise.resolve().then(() => ({ ...resolve(next, request), usage: FAKE_USAGE }));
   }
@@ -78,4 +81,8 @@ export class FakeLlmClient implements LlmClient {
 function resolve<T>(scripted: Scripted<T>, request: unknown): T {
   if (scripted instanceof Error) throw scripted;
   return typeof scripted === 'function' ? (scripted as (r: unknown) => T)(request) : scripted;
+}
+
+function snapshot(messages: LlmMessage[]): LlmMessage[] {
+  return structuredClone(messages);
 }

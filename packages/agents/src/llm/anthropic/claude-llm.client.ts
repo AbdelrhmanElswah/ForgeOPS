@@ -209,6 +209,27 @@ function toAnthropicTool(tool: LlmToolDefinition): Anthropic.Beta.Messages.BetaT
     name: tool.name,
     description: tool.description,
     strict: true,
-    input_schema: { ...schema, type: 'object' },
+    input_schema: { ...closeObjects(schema), type: 'object' },
   };
+}
+
+/**
+ * Strict tools require `additionalProperties: false` on every object, including nested ones.
+ * Zod only emits it for `z.strictObject`, so it is applied here, where the provider rule lives.
+ */
+function closeObjects<T>(node: T): T {
+  if (Array.isArray(node)) {
+    return node.map(closeObjects) as T;
+  }
+  if (node === null || typeof node !== 'object') {
+    return node;
+  }
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(node)) {
+    result[key] = closeObjects(value);
+  }
+  if (result.type === 'object') {
+    result.additionalProperties = false;
+  }
+  return result as T;
 }

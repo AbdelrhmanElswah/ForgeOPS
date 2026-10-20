@@ -1,22 +1,12 @@
 import { performance } from 'node:perf_hooks';
 
 import { PlanSchema } from '../outputs/plan.js';
-import { type BudgetLimits, assertWithinBudget, llmUsageToBudget } from '../policies/budget.js';
+import { type BudgetLimits, assertWithinBudget } from '../policies/budget.js';
 import { PLANNER_SYSTEM_PROMPT, plannerUserMessage } from '../prompts/planner.prompt.js';
 import type { AgentEventSink } from '../ports/events.port.js';
-import {
-  type LlmClient,
-  LlmError,
-  LlmInvalidOutputError,
-  type LlmUsage,
-} from '../ports/llm.port.js';
-import {
-  addBudget,
-  type AgentStateUpdate,
-  type AgentStateValue,
-  type BudgetUsage,
-  EMPTY_BUDGET,
-} from '../state/agent-state.js';
+import { type LlmClient, LlmError, LlmInvalidOutputError } from '../ports/llm.port.js';
+import type { AgentStateUpdate, AgentStateValue } from '../state/agent-state.js';
+import { NodeSpend } from './node-spend.js';
 
 /** One retry for malformed output; a second failure is a real problem, not bad luck. */
 const MAX_ATTEMPTS = 2;
@@ -39,22 +29,10 @@ export function createPlannerNode(deps: PlannerNodeDeps) {
     const startedAt = performance.now();
     await deps.events.emit({ type: 'node.started', node: 'planner' });
 
-    // What this node spent, returned as the budget *delta* (the state reducer adds it up).
-    let spent: BudgetUsage = EMPTY_BUDGET;
-    const record = async (usage: LlmUsage) => {
-      spent = addBudget(spent, llmUsageToBudget(usage));
-      await deps.events.emit({
-        type: 'llm.called',
-        role: 'planner',
-        model: usage.model,
-        inputTokens: usage.inputTokens,
-        outputTokens: usage.outputTokens,
-        costUsd: usage.costUsd,
-      });
-    };
+    const spend = new NodeSpend('planner', state.budget, deps.events);
 
     for (let attempt = 1; ; attempt++) {
-      assertWithinBudget(addBudget(state.budget, spent), deps.limits, { llmCalls: 1 });
+      assertWithinBudget(spend.total, deps.limits, { llmCalls: 1 });
       try {
         const { output, usage } = await deps.llm.generateStructured({
           role: 'planner',
@@ -79,16 +57,16 @@ export function createPlannerNode(deps: PlannerNodeDeps) {
           schema: PlanSchema,
           ...(deps.signal && { signal: deps.signal }),
         });
-        await record(usage);
+        await spend.recordLlm(usage);
         await deps.events.emit({
           type: 'node.completed',
           node: 'planner',
           durationMs: Math.round(performance.now() - startedAt),
         });
-        return { plan: output, budget: spent };
+        return { plan: output, budget: spend.spent };
       } catch (error) {
         if (error instanceof LlmError && error.usage) {
-          await record(error.usage);
+          await spend.recordLlm(error.usage);
         }
         if (error instanceof LlmInvalidOutputError && attempt < MAX_ATTEMPTS) {
           continue;

@@ -56,9 +56,13 @@ export class PathGuard {
     this.denyWrite = picomatch([...DENY_WRITE, ...extraDeniedPaths], options);
   }
 
+  /** `''` and `'.'` both mean the repository root (normalised to `''`). */
   check(rawPath: string, access: PathAccess): PathCheck {
-    if (rawPath.length === 0 || rawPath.length > MAX_PATH_LENGTH) {
-      return { ok: false, reason: 'Path is empty or too long.' };
+    if (rawPath.length > MAX_PATH_LENGTH) {
+      return { ok: false, reason: 'Path is too long.' };
+    }
+    if (rawPath === '') {
+      return { ok: true, path: '' };
     }
     if (/[\0\r\n]/.test(rawPath)) {
       return { ok: false, reason: 'Path contains control characters.' };
