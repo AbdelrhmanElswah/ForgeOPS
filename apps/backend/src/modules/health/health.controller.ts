@@ -2,12 +2,14 @@ import { Controller, Get, HttpStatus, Res, VERSION_NEUTRAL } from '@nestjs/commo
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 
+import { Public } from '../auth/http/auth.decorators.js';
 import { type ReadinessReport, ReadinessService } from './readiness.service.js';
 
 /**
  * Probes live at /health (no /api/v1 prefix) so load balancers and Docker health checks
  * never break when the API version changes.
  */
+@Public()
 @ApiTags('health')
 @Controller({ path: 'health', version: VERSION_NEUTRAL })
 export class HealthController {

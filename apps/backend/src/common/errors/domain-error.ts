@@ -34,6 +34,14 @@ export class NotFoundError extends DomainError {
   }
 }
 
+export class UnauthenticatedError extends DomainError {
+  readonly code = 'unauthenticated';
+
+  constructor(message = 'Authentication is required.') {
+    super(message);
+  }
+}
+
 export class ForbiddenError extends DomainError {
   readonly code = 'forbidden';
 }

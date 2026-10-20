@@ -1,4 +1,5 @@
 import { type INestApplication, VersioningType } from '@nestjs/common';
+import cookieParser from 'cookie-parser';
 import { Logger } from 'nestjs-pino';
 
 import { AppConfig } from './common/config/app-config.service.js';
@@ -13,6 +14,9 @@ export function configureApiApp(app: INestApplication): INestApplication {
 
   // Route Nest's own logs (bootstrap, errors) through Pino as structured JSON.
   app.useLogger(app.get(Logger));
+
+  // Populates req.cookies, where the auth guard finds the access token.
+  app.use(cookieParser());
 
   // Routes become /api/v1/<controller>; health probes stay at the root.
   app.setGlobalPrefix('api', { exclude: ['health', 'health/ready'] });

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { validateEnv } from './env.schema.js';
 
 const required = {
+  JWT_ACCESS_SECRET: 'x'.repeat(32),
   DATABASE_URL: 'postgresql://user:s3cret@localhost:5432/forgeops',
   REDIS_URL: 'redis://localhost:6379/0',
 };

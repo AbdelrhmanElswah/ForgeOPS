@@ -17,6 +17,11 @@ export const EnvSchema = z.object({
   REDIS_URL: z.url({ protocol: /^rediss?$/ }),
 
   WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(16).default(2),
+
+  /** HMAC key for access tokens. Generate with: node -e "console.log(crypto.randomBytes(48).toString('base64url'))" */
+  JWT_ACCESS_SECRET: z.string().min(32, 'Must be at least 32 characters of random data'),
+  ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().min(60).max(3600).default(900),
+  REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(30),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

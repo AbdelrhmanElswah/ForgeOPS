@@ -12,6 +12,7 @@ export default defineConfig({
       LOG_LEVEL: 'silent',
       DATABASE_URL: 'postgresql://forgeops:forgeops@localhost:5433/forgeops_test',
       REDIS_URL: 'redis://localhost:6379/1',
+      JWT_ACCESS_SECRET: 'test-secret-that-is-at-least-32-characters-long',
     },
   },
 });

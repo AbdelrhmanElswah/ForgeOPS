@@ -75,10 +75,12 @@ model User {
 }
 
 /// One row per refresh token. Tokens rotate on every refresh; presenting an already-rotated
-/// token signals theft, and the whole chain is revoked (refresh-token reuse detection).
+/// token signals theft, and the whole family is revoked (refresh-token reuse detection).
 model Session {
   id               String    @id @default(uuid(7)) @db.Uuid
   userId           String    @map("user_id") @db.Uuid
+  /// Shared by every rotation of one login, so a whole family is revoked with one UPDATE.
+  familyId         String    @map("family_id") @db.Uuid
   /// SHA-256 of the refresh token. The raw token only ever exists in the user's httpOnly cookie.
   refreshTokenHash String    @unique @map("refresh_token_hash")
   /// Set when this token was rotated, pointing at its successor.
@@ -94,6 +96,7 @@ model Session {
   replaces   Session? @relation("SessionRotation")
 
   @@index([userId])
+  @@index([familyId])
   @@map("sessions")
 }
 

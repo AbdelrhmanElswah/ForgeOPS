@@ -3,6 +3,8 @@ import type { Server } from 'node:http';
 import {
   type CreateTaskRequest,
   CreateTaskRequestSchema,
+  CSRF_HEADER,
+  CSRF_HEADER_VALUE,
   ProblemDetailsSchema,
 } from '@forgeops/contracts';
 import { Controller, Get, type INestApplication, Post } from '@nestjs/common';
@@ -10,10 +12,12 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { NotFoundError } from '../src/common/errors/domain-error.js';
+import { Public } from '../src/modules/auth/http/auth.decorators.js';
 import { ZodBody } from '../src/common/validation/zod-validation.pipe.js';
 import { createTestApp } from './utils/create-test-app.js';
 
 /** Test-only routes that exercise validation and error mapping end to end. */
+@Public()
 @Controller('probe')
 class ProbeController {
   @Post('echo')
@@ -86,6 +90,7 @@ describe('API process (e2e)', () => {
     it('passes the parsed (trimmed) body to the handler', async () => {
       const response = await request(app.getHttpServer())
         .post('/api/v1/probe/echo')
+        .set(CSRF_HEADER, CSRF_HEADER_VALUE)
         .send(validTask)
         .expect(201);
 
@@ -97,6 +102,7 @@ describe('API process (e2e)', () => {
     it('rejects invalid bodies with field-level problem details', async () => {
       const response = await request(app.getHttpServer())
         .post('/api/v1/probe/echo')
+        .set(CSRF_HEADER, CSRF_HEADER_VALUE)
         .send({ ...validTask, instruction: 'fix', status: 'completed' })
         .expect(400)
         .expect('content-type', /application\/problem\+json/);
@@ -109,6 +115,7 @@ describe('API process (e2e)', () => {
     it('turns malformed JSON into a 400 problem, not a 500', async () => {
       const response = await request(app.getHttpServer())
         .post('/api/v1/probe/echo')
+        .set(CSRF_HEADER, CSRF_HEADER_VALUE)
         .set('content-type', 'application/json')
         .send('{"instruction": ')
         .expect(400);

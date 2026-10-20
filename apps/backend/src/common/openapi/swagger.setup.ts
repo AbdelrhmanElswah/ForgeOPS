@@ -1,3 +1,4 @@
+import { AUTH_COOKIES } from '@forgeops/contracts';
 import type { INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
@@ -11,6 +12,8 @@ export function setupSwagger(app: INestApplication): void {
       'AI-powered software engineering automation. Errors use RFC 9457 `application/problem+json`.',
     )
     .setVersion('1')
+    .addCookieAuth(AUTH_COOKIES.accessToken)
+    .addBearerAuth()
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

@@ -1,3 +1,4 @@
+export * from './auth/auth.schemas.js';
 export * from './common/pagination.js';
 export * from './common/primitives.js';
 export * from './common/problem.js';
