@@ -9,7 +9,8 @@ export default defineConfig({
     include: ['src/**/*.test.ts', 'test/**/*.test.ts'],
     env: {
       NODE_ENV: 'test',
-      DATABASE_URL: 'postgresql://forgeops:forgeops@localhost:5432/forgeops_test',
+      LOG_LEVEL: 'silent',
+      DATABASE_URL: 'postgresql://forgeops:forgeops@localhost:5433/forgeops_test',
       REDIS_URL: 'redis://localhost:6379/1',
     },
   },
