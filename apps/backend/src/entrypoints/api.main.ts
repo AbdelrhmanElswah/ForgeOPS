@@ -8,7 +8,7 @@ import { configureApiApp } from '../api.setup.js';
 import { AppConfig } from '../common/config/app-config.service.js';
 
 async function bootstrap(): Promise<void> {
-  const app = configureApiApp(await NestFactory.create(ApiModule));
+  const app = configureApiApp(await NestFactory.create(ApiModule, { bufferLogs: true }));
   const port = app.get(AppConfig).get('API_PORT');
 
   await app.listen(port);

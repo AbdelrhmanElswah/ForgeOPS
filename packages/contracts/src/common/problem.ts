@@ -6,6 +6,7 @@ import { z } from 'zod';
  */
 export const ERROR_CODES = [
   'validation_failed',
+  'bad_request',
   'unauthenticated',
   'forbidden',
   'not_found',
@@ -14,6 +15,7 @@ export const ERROR_CODES = [
   'idempotency_key_reused',
   'rate_limited',
   'internal_error',
+  'service_unavailable',
 ] as const;
 
 export const ErrorCodeSchema = z.enum(ERROR_CODES);

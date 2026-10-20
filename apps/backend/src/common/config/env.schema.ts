@@ -7,7 +7,7 @@ import { z } from 'zod';
  */
 export const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 
   API_PORT: z.coerce.number().int().min(1).max(65535).default(3001),
   /** The Next.js origin allowed to call the API with credentials (CORS). */
