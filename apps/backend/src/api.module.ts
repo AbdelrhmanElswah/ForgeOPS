@@ -9,6 +9,7 @@ import { RedisModule } from './infrastructure/redis/redis.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { GitHubIntegrationModule } from './modules/github/github-integration.module.js';
 import { HealthModule } from './modules/health/health.module.js';
+import { RepositoriesModule } from './modules/repositories/repositories.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 
 /**
@@ -25,6 +26,7 @@ import { UsersModule } from './modules/users/users.module.js';
     UsersModule,
     AuthModule,
     GitHubIntegrationModule,
+    RepositoriesModule,
   ],
   providers: [{ provide: APP_FILTER, useClass: ProblemDetailsFilter }],
 })

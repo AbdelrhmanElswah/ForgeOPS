@@ -7,9 +7,13 @@ import {
   type InstallationSnapshot,
 } from '../../src/modules/github/application/installations.repository.js';
 
-interface StoredRepository extends GitHubRepositoryInfo {
+/** Mirrors a `repositories` row. Shared with InMemoryRepositoriesRepository, like the real table. */
+export interface StoredRepository extends GitHubRepositoryInfo {
+  id: string;
   installationId: number;
+  settings: unknown;
   removedAt: Date | null;
+  createdAt: Date;
 }
 
 /** In-memory adapter mirroring PrismaInstallationsRepository's reconciliation semantics. */
@@ -84,8 +88,13 @@ export class InMemoryInstallationsRepository extends InstallationsRepository {
   private reconcile({ installation, repositories }: InstallationSnapshot, now: Date): void {
     const current = new Set(repositories.map((r) => r.githubRepoId));
     for (const repo of repositories) {
+      // Like the Prisma upsert: id, settings and createdAt survive a resync.
+      const existing = this.repositories.get(repo.githubRepoId);
       this.repositories.set(repo.githubRepoId, {
         ...repo,
+        id: existing?.id ?? randomUUID(),
+        settings: existing?.settings ?? {},
+        createdAt: existing?.createdAt ?? now,
         installationId: installation.installationId,
         removedAt: null,
       });

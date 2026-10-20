@@ -11,10 +11,12 @@ import { REDIS_CLIENT } from '../../src/infrastructure/redis/redis.module.js';
 import { SessionsRepository } from '../../src/modules/auth/application/sessions.repository.js';
 import { GitHubAppClient } from '../../src/modules/github/application/github-app.client.js';
 import { InstallationsRepository } from '../../src/modules/github/application/installations.repository.js';
+import { RepositoriesRepository } from '../../src/modules/repositories/application/repositories.repository.js';
 import { UsersRepository } from '../../src/modules/users/users.repository.js';
 import { FakeGitHubAppClient } from '../fakes/fake-github-app.client.js';
 import { InMemoryInstallationsRepository } from '../fakes/in-memory-installations.repository.js';
 import { InMemoryKeyValueStore } from '../fakes/in-memory-key-value.store.js';
+import { InMemoryRepositoriesRepository } from '../fakes/in-memory-repositories.repository.js';
 import { InMemorySessionsRepository } from '../fakes/in-memory-sessions.repository.js';
 import { InMemoryUsersRepository } from '../fakes/in-memory-users.repository.js';
 
@@ -37,6 +39,9 @@ export async function createTestApp(
   const database = options.database ?? healthy;
   const redis = options.redis ?? healthy;
 
+  // Installations and repositories share storage, as their tables do in Postgres.
+  const installations = new InMemoryInstallationsRepository();
+
   const moduleRef = await Test.createTestingModule({
     imports: [ApiModule],
     controllers: options.controllers ?? [],
@@ -52,7 +57,9 @@ export async function createTestApp(
     .overrideProvider(KeyValueStore)
     .useValue(new InMemoryKeyValueStore())
     .overrideProvider(InstallationsRepository)
-    .useValue(new InMemoryInstallationsRepository())
+    .useValue(installations)
+    .overrideProvider(RepositoriesRepository)
+    .useValue(new InMemoryRepositoriesRepository(installations))
     .overrideProvider(GitHubAppClient)
     .useValue(new FakeGitHubAppClient())
     .compile();

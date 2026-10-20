@@ -39,7 +39,11 @@ Architecture reference: [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 **Demo:** log in through Swagger and call protected endpoints.
 
-## Phase 2 — GitHub integration (week 2)
+## Phase 2 — GitHub integration (week 2) ✅
+
+> **Status:** code complete, tested against a fake GitHub (nock + scriptable fake). Still to do by hand:
+> `pnpm github:create-app`, install the app on a test repo, and confirm the install callback
+> round-trip against real GitHub.
 
 **Goal:** connect GitHub safely and read repositories.
 
