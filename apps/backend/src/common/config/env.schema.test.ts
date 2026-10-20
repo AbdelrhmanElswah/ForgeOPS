@@ -27,6 +27,16 @@ describe('validateEnv', () => {
     );
   });
 
+  it('runs without any GitHub App configuration', () => {
+    expect(validateEnv(required).GITHUB_APP_ID).toBeUndefined();
+  });
+
+  it('rejects a half-configured GitHub App', () => {
+    expect(() => validateEnv({ ...required, GITHUB_APP_ID: '123' })).toThrow(
+      /GITHUB_APP_PRIVATE_KEY[\s\S]*GITHUB_WEBHOOK_SECRET/,
+    );
+  });
+
   it('never leaks secret values into the error message', () => {
     try {
       validateEnv({ ...required, API_PORT: 'not-a-port' });
