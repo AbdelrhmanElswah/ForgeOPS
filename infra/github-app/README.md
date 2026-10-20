@@ -44,7 +44,7 @@ publisher gets `contents:write` and `pull_requests:write`. See
 ## Webhooks on localhost
 
 GitHub can't reach `localhost`, so the app sends webhooks to a [smee.io](https://smee.io) channel.
-A relay forwards them to the API (set up in step 2.4). Every delivery is still verified with the
+Run `pnpm github:webhooks` next to the API to relay them. Every delivery is still verified with the
 webhook secret (HMAC-SHA256), so the relay is never trusted.
 
 ## Production

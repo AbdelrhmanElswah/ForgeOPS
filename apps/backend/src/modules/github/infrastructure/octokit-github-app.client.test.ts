@@ -4,12 +4,13 @@ import nock from 'nock';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { NotFoundError } from '../../../common/errors/domain-error.js';
-import { TOKEN_SCOPES } from '../application/github-app.client.js';
+import { InstallationAccessDeniedError, TOKEN_SCOPES } from '../application/github-app.client.js';
 import { OctokitGitHubAppClient } from './octokit-github-app.client.js';
 
 const API = 'https://api.github.com';
 const APP_ID = 123_456;
 const INSTALLATION_ID = 42;
+const CLIENT_ID = 'Iv23liTestClientId';
 
 // A real RSA key pair, generated per test run: the adapter signs real JWTs and the fake
 // GitHub below verifies them with the public key, exactly like api.github.com would.
@@ -54,8 +55,11 @@ describe('OctokitGitHubAppClient', () => {
   const newClient = () =>
     new OctokitGitHubAppClient({
       appId: APP_ID,
+      slug: 'forgeops-test',
       privateKey: privateKeyPem,
       webhookSecret: 'webhook-secret-for-tests',
+      clientId: CLIENT_ID,
+      clientSecret: 'oauth-client-secret',
     });
 
   beforeAll(() => {
@@ -186,5 +190,53 @@ describe('OctokitGitHubAppClient', () => {
     await expect(
       newClient().getBranchHead(INSTALLATION_ID, 'acme', 'shop', 'nope'),
     ).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  describe('authorizeInstallation (OAuth ownership check)', () => {
+    /** GitHub's OAuth endpoints: code → user token, then the token is revoked. */
+    function oauthExchange(userToken: string) {
+      const exchange = nock('https://github.com')
+        .post('/login/oauth/access_token')
+        .reply(200, { access_token: userToken, token_type: 'bearer', scope: '' });
+      const revoke = nock(API).delete(`/applications/${CLIENT_ID}/token`).reply(204);
+      return { exchange, revoke };
+    }
+
+    it('confirms the user can access the installation, then revokes the user token', async () => {
+      const { revoke } = oauthExchange('ghu_user');
+      nock(API)
+        .get('/user')
+        .matchHeader('authorization', 'token ghu_user')
+        .reply(200, { id: 9001, login: 'octocat' })
+        .get('/user/installations')
+        .query(true)
+        .reply(200, { total_count: 1, installations: [{ id: INSTALLATION_ID }] });
+
+      await expect(
+        newClient().authorizeInstallation('oauth-code', INSTALLATION_ID),
+      ).resolves.toEqual({ githubUserId: 9001, login: 'octocat' });
+      expect(revoke.isDone()).toBe(true);
+    });
+
+    it('refuses an installation the user cannot access, and still revokes the token', async () => {
+      const { revoke } = oauthExchange('ghu_user');
+      nock(API)
+        .get('/user')
+        .reply(200, { id: 9001, login: 'octocat' })
+        .get('/user/installations')
+        .query(true)
+        .reply(200, { total_count: 1, installations: [{ id: 777 }] });
+
+      await expect(
+        newClient().authorizeInstallation('oauth-code', INSTALLATION_ID),
+      ).rejects.toBeInstanceOf(InstallationAccessDeniedError);
+      expect(revoke.isDone()).toBe(true);
+    });
+  });
+
+  it('builds the install URL with the state parameter', () => {
+    expect(newClient().installationUrl('abc 123')).toBe(
+      'https://github.com/apps/forgeops-test/installations/new?state=abc+123',
+    );
   });
 });

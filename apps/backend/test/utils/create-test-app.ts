@@ -6,9 +6,15 @@ import { Test } from '@nestjs/testing';
 import { ApiModule } from '../../src/api.module.js';
 import { configureApiApp } from '../../src/api.setup.js';
 import { PrismaService } from '../../src/infrastructure/prisma/prisma.service.js';
+import { KeyValueStore } from '../../src/infrastructure/redis/key-value.store.js';
 import { REDIS_CLIENT } from '../../src/infrastructure/redis/redis.module.js';
 import { SessionsRepository } from '../../src/modules/auth/application/sessions.repository.js';
+import { GitHubAppClient } from '../../src/modules/github/application/github-app.client.js';
+import { InstallationsRepository } from '../../src/modules/github/application/installations.repository.js';
 import { UsersRepository } from '../../src/modules/users/users.repository.js';
+import { FakeGitHubAppClient } from '../fakes/fake-github-app.client.js';
+import { InMemoryInstallationsRepository } from '../fakes/in-memory-installations.repository.js';
+import { InMemoryKeyValueStore } from '../fakes/in-memory-key-value.store.js';
 import { InMemorySessionsRepository } from '../fakes/in-memory-sessions.repository.js';
 import { InMemoryUsersRepository } from '../fakes/in-memory-users.repository.js';
 
@@ -43,9 +49,19 @@ export async function createTestApp(
     .useValue(new InMemoryUsersRepository())
     .overrideProvider(SessionsRepository)
     .useValue(new InMemorySessionsRepository())
+    .overrideProvider(KeyValueStore)
+    .useValue(new InMemoryKeyValueStore())
+    .overrideProvider(InstallationsRepository)
+    .useValue(new InMemoryInstallationsRepository())
+    .overrideProvider(GitHubAppClient)
+    .useValue(new FakeGitHubAppClient())
     .compile();
 
-  const app = moduleRef.createNestApplication<INestApplication<Server>>({ bufferLogs: true });
+  const app = moduleRef.createNestApplication<INestApplication<Server>>({
+    bufferLogs: true,
+    // Keeps the exact request bytes on req.rawBody: webhook signatures are computed over them.
+    rawBody: true,
+  });
   configureApiApp(app);
   await app.init();
   return app;

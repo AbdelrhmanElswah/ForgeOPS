@@ -2,9 +2,10 @@ import { Global, Inject, Logger, Module, type OnApplicationShutdown } from '@nes
 import { Redis } from 'ioredis';
 
 import { AppConfig } from '../../common/config/app-config.service.js';
+import { KeyValueStore, RedisKeyValueStore } from './key-value.store.js';
+import { REDIS_CLIENT } from './redis.constants.js';
 
-/** Injection token for the shared ioredis client: `@Inject(REDIS_CLIENT) redis: Redis`. */
-export const REDIS_CLIENT = Symbol('REDIS_CLIENT');
+export { REDIS_CLIENT };
 
 function createRedisClient(url: string): Redis {
   const logger = new Logger('Redis');
@@ -43,8 +44,9 @@ function createRedisClient(url: string): Redis {
       inject: [AppConfig],
       useFactory: (config: AppConfig) => createRedisClient(config.get('REDIS_URL')),
     },
+    { provide: KeyValueStore, useClass: RedisKeyValueStore },
   ],
-  exports: [REDIS_CLIENT],
+  exports: [REDIS_CLIENT, KeyValueStore],
 })
 export class RedisModule implements OnApplicationShutdown {
   constructor(@Inject(REDIS_CLIENT) private readonly redis: Redis) {}

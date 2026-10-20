@@ -113,6 +113,8 @@ model GitHubInstallation {
   /// The ForgeOps user who connected this installation and may use its repositories.
   userId         String            @map("user_id") @db.Uuid
   suspendedAt    DateTime?         @map("suspended_at") @db.Timestamptz(3)
+  /// Set when the app is uninstalled; rows are kept so task history stays intact.
+  removedAt      DateTime?         @map("removed_at") @db.Timestamptz(3)
   createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
 

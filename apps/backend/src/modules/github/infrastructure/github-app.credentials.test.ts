@@ -13,13 +13,22 @@ import { UnconfiguredGitHubAppClient } from './unconfigured-github-app.client.js
 const pem = generateKeyPairSync('rsa', { modulusLength: 2048 })
   .privateKey.export({ type: 'pkcs1', format: 'pem' })
   .toString();
-const base = { GITHUB_APP_ID: 1, GITHUB_WEBHOOK_SECRET: 'webhook-secret-for-tests' };
+const base = {
+  GITHUB_APP_ID: 1,
+  GITHUB_APP_SLUG: 'forgeops-test',
+  GITHUB_APP_CLIENT_ID: 'Iv23liTestClientId',
+  GITHUB_APP_CLIENT_SECRET: 'oauth-client-secret',
+  GITHUB_WEBHOOK_SECRET: 'webhook-secret-for-tests',
+};
 
 describe('loadGitHubAppCredentials', () => {
   it('returns null when no app is configured', () => {
     expect(
       loadGitHubAppCredentials({
         GITHUB_APP_ID: undefined,
+        GITHUB_APP_SLUG: undefined,
+        GITHUB_APP_CLIENT_ID: undefined,
+        GITHUB_APP_CLIENT_SECRET: undefined,
         GITHUB_WEBHOOK_SECRET: undefined,
         GITHUB_APP_PRIVATE_KEY: undefined,
         GITHUB_APP_PRIVATE_KEY_PATH: undefined,

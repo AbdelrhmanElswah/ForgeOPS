@@ -81,4 +81,29 @@ export abstract class GitHubAppClient {
   ): Promise<string>;
   /** Mints (or reuses a cached) installation token narrowed to `scope`. */
   abstract createScopedToken(installationId: number, scope: TokenScope): Promise<ScopedToken>;
+
+  /** Where to send a user to install the app; GitHub echoes `state` back to our callback. */
+  abstract installationUrl(state: string): string;
+
+  /**
+   * Exchanges the OAuth `code` from the install redirect for a short-lived user token, checks
+   * that this GitHub user can access `installationId`, then revokes the token.
+   * @throws InstallationAccessDeniedError when the user can't access the installation
+   */
+  abstract authorizeInstallation(code: string, installationId: number): Promise<GitHubUserIdentity>;
+
+  abstract isValidWebhookSignature(rawBody: Buffer, signatureHeader: string | undefined): boolean;
+}
+
+export interface GitHubUserIdentity {
+  githubUserId: number;
+  login: string;
+}
+
+export class InstallationAccessDeniedError extends DomainError {
+  readonly code = 'forbidden';
+
+  constructor() {
+    super('Your GitHub account does not have access to this installation.');
+  }
 }

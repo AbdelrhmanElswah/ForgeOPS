@@ -7,7 +7,7 @@ import { LoggingModule } from './infrastructure/logging/logging.module.js';
 import { PrismaModule } from './infrastructure/prisma/prisma.module.js';
 import { RedisModule } from './infrastructure/redis/redis.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
-import { GitHubModule } from './modules/github/github.module.js';
+import { GitHubIntegrationModule } from './modules/github/github-integration.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 
@@ -24,7 +24,7 @@ import { UsersModule } from './modules/users/users.module.js';
     HealthModule,
     UsersModule,
     AuthModule,
-    GitHubModule,
+    GitHubIntegrationModule,
   ],
   providers: [{ provide: APP_FILTER, useClass: ProblemDetailsFilter }],
 })

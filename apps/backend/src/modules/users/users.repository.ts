@@ -6,6 +6,7 @@ export interface UserRecord {
   email: string;
   passwordHash: string | null;
   displayName: string | null;
+  githubUserId: number | null;
   createdAt: Date;
 }
 
@@ -21,6 +22,12 @@ export class EmailAlreadyRegisteredError extends ConflictError {
   }
 }
 
+export class GitHubAccountAlreadyLinkedError extends ConflictError {
+  constructor() {
+    super('This GitHub account is already linked to another ForgeOps account.');
+  }
+}
+
 /**
  * Port: what the application needs from user storage. An abstract class (not an interface)
  * so it can double as the Nest injection token. Prisma implements it in production, an
@@ -31,4 +38,6 @@ export abstract class UsersRepository {
   abstract findByEmail(email: string): Promise<UserRecord | null>;
   /** @throws EmailAlreadyRegisteredError */
   abstract create(user: NewUser): Promise<UserRecord>;
+  /** @throws GitHubAccountAlreadyLinkedError if another user already holds this GitHub id */
+  abstract linkGitHubAccount(userId: string, githubUserId: number): Promise<void>;
 }

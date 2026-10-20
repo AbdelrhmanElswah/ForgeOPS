@@ -21,6 +21,7 @@
     "infra:down": "docker compose -f infra/docker/docker-compose.yml down",
     "infra:logs": "docker compose -f infra/docker/docker-compose.yml logs -f",
     "github:create-app": "node infra/github-app/create-app.mjs",
+    "github:webhooks": "node infra/github-app/relay-webhooks.mjs",
     "db:migrate": "pnpm --filter @forgeops/backend db:migrate",
     "db:seed": "pnpm --filter @forgeops/backend db:seed",
     "db:studio": "pnpm --filter @forgeops/backend db:studio",
@@ -29,6 +30,7 @@
   },
   "devDependencies": {
     "prettier": "^3.9.10",
+    "smee-client": "^5.0.0",
     "turbo": "^2.11.9",
     "typescript": "~6.0.3"
   }

@@ -14,6 +14,9 @@ import { UnconfiguredGitHubAppClient } from './infrastructure/unconfigured-githu
       useFactory: (config: AppConfig): GitHubAppClient => {
         const credentials = loadGitHubAppCredentials({
           GITHUB_APP_ID: config.get('GITHUB_APP_ID'),
+          GITHUB_APP_SLUG: config.get('GITHUB_APP_SLUG'),
+          GITHUB_APP_CLIENT_ID: config.get('GITHUB_APP_CLIENT_ID'),
+          GITHUB_APP_CLIENT_SECRET: config.get('GITHUB_APP_CLIENT_SECRET'),
           GITHUB_APP_PRIVATE_KEY: config.get('GITHUB_APP_PRIVATE_KEY'),
           GITHUB_APP_PRIVATE_KEY_PATH: config.get('GITHUB_APP_PRIVATE_KEY_PATH'),
           GITHUB_WEBHOOK_SECRET: config.get('GITHUB_WEBHOOK_SECRET'),

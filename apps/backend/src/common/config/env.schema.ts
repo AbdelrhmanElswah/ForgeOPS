@@ -48,12 +48,20 @@ export const EnvSchema = z
         message: 'Required when GITHUB_APP_ID is set (or set GITHUB_APP_PRIVATE_KEY_PATH)',
       });
     }
-    if (!env.GITHUB_WEBHOOK_SECRET) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['GITHUB_WEBHOOK_SECRET'],
-        message: 'Required when GITHUB_APP_ID is set',
-      });
+    // The installation flow verifies ownership through GitHub OAuth, so it needs these too.
+    for (const key of [
+      'GITHUB_WEBHOOK_SECRET',
+      'GITHUB_APP_SLUG',
+      'GITHUB_APP_CLIENT_ID',
+      'GITHUB_APP_CLIENT_SECRET',
+    ] as const) {
+      if (!env[key]) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [key],
+          message: 'Required when GITHUB_APP_ID is set',
+        });
+      }
     }
   });
 

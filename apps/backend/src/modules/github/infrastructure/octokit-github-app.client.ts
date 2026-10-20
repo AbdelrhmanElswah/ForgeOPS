@@ -7,9 +7,12 @@ import {
   type GitHubBranchInfo,
   type GitHubInstallationInfo,
   type GitHubRepositoryInfo,
+  type GitHubUserIdentity,
+  InstallationAccessDeniedError,
   type ScopedToken,
   type TokenScope,
 } from '../application/github-app.client.js';
+import { isValidWebhookSignature } from '../application/webhook-signature.js';
 import type { GitHubAppCredentials } from './github-app.credentials.js';
 
 const InstallationTokenSchema = z.object({ token: z.string(), expiresAt: z.string() });
@@ -24,14 +27,16 @@ const InstallationTokenSchema = z.object({ token: z.string(), expiresAt: z.strin
  */
 export class OctokitGitHubAppClient extends GitHubAppClient {
   private readonly app: App;
+  private readonly UserOctokit = Octokit.defaults({ userAgent: 'forgeops' });
 
-  constructor(credentials: GitHubAppCredentials) {
+  constructor(private readonly credentials: GitHubAppCredentials) {
     super();
     this.app = new App({
       appId: credentials.appId,
       privateKey: credentials.privateKey,
+      oauth: { clientId: credentials.clientId, clientSecret: credentials.clientSecret },
       webhooks: { secret: credentials.webhookSecret },
-      Octokit: Octokit.defaults({ userAgent: 'forgeops' }),
+      Octokit: this.UserOctokit,
     });
   }
 
@@ -105,6 +110,35 @@ export class OctokitGitHubAppClient extends GitHubAppClient {
     );
     const { token, expiresAt } = InstallationTokenSchema.parse(authentication);
     return { token, expiresAt: new Date(expiresAt) };
+  }
+
+  installationUrl(state: string): string {
+    const url = new URL(`https://github.com/apps/${this.credentials.slug}/installations/new`);
+    url.searchParams.set('state', state);
+    return url.toString();
+  }
+
+  async authorizeInstallation(code: string, installationId: number): Promise<GitHubUserIdentity> {
+    const { authentication } = await this.call(() => this.app.oauth.createToken({ code }));
+    const userOctokit = new this.UserOctokit({ auth: authentication.token });
+    try {
+      const [{ data: user }, installations] = await Promise.all([
+        this.call(() => userOctokit.request('GET /user')),
+        this.call(() => userOctokit.paginate('GET /user/installations', { per_page: 100 })),
+      ]);
+      // The decisive check: GitHub itself says whether this user can access the installation.
+      if (!installations.some((installation) => installation.id === installationId)) {
+        throw new InstallationAccessDeniedError();
+      }
+      return { githubUserId: Number(user.id), login: user.login };
+    } finally {
+      // We only needed the user token for this one check, so don't leave it valid.
+      await this.app.oauth.deleteToken({ token: authentication.token }).catch(() => undefined);
+    }
+  }
+
+  isValidWebhookSignature(rawBody: Buffer, signatureHeader: string | undefined): boolean {
+    return isValidWebhookSignature(this.credentials.webhookSecret, rawBody, signatureHeader);
   }
 
   /** Translates GitHub's HTTP errors into domain errors at the boundary. */

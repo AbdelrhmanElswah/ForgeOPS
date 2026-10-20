@@ -4,6 +4,7 @@ import { isUniqueViolation } from '../../../infrastructure/prisma/prisma-errors.
 import { PrismaService } from '../../../infrastructure/prisma/prisma.service.js';
 import {
   EmailAlreadyRegisteredError,
+  GitHubAccountAlreadyLinkedError,
   type NewUser,
   type UserRecord,
   UsersRepository,
@@ -14,8 +15,15 @@ const USER_FIELDS = {
   email: true,
   passwordHash: true,
   displayName: true,
+  githubUserId: true,
   createdAt: true,
 } as const;
+
+type UserRow = Omit<UserRecord, 'githubUserId'> & { githubUserId: bigint | null };
+
+function toRecord(row: UserRow): UserRecord {
+  return { ...row, githubUserId: row.githubUserId === null ? null : Number(row.githubUserId) };
+}
 
 @Injectable()
 export class PrismaUsersRepository extends UsersRepository {
@@ -23,22 +31,38 @@ export class PrismaUsersRepository extends UsersRepository {
     super();
   }
 
-  findById(id: string): Promise<UserRecord | null> {
-    return this.prisma.user.findUnique({ where: { id }, select: USER_FIELDS });
+  async findById(id: string): Promise<UserRecord | null> {
+    const row = await this.prisma.user.findUnique({ where: { id }, select: USER_FIELDS });
+    return row && toRecord(row);
   }
 
-  findByEmail(email: string): Promise<UserRecord | null> {
-    return this.prisma.user.findUnique({ where: { email }, select: USER_FIELDS });
+  async findByEmail(email: string): Promise<UserRecord | null> {
+    const row = await this.prisma.user.findUnique({ where: { email }, select: USER_FIELDS });
+    return row && toRecord(row);
   }
 
   async create(user: NewUser): Promise<UserRecord> {
     try {
-      return await this.prisma.user.create({ data: user, select: USER_FIELDS });
+      return toRecord(await this.prisma.user.create({ data: user, select: USER_FIELDS }));
     } catch (error) {
       // Rely on the unique index, not a "check then insert": two concurrent sign-ups with the
       // same email would both pass a check, but only one can pass the constraint.
       if (isUniqueViolation(error)) {
         throw new EmailAlreadyRegisteredError();
+      }
+      throw error;
+    }
+  }
+
+  async linkGitHubAccount(userId: string, githubUserId: number): Promise<void> {
+    try {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { githubUserId: BigInt(githubUserId) },
+      });
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw new GitHubAccountAlreadyLinkedError();
       }
       throw error;
     }

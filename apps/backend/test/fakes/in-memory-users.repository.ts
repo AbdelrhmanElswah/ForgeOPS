@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import {
   EmailAlreadyRegisteredError,
+  GitHubAccountAlreadyLinkedError,
   type NewUser,
   type UserRecord,
   UsersRepository,
@@ -23,8 +24,23 @@ export class InMemoryUsersRepository extends UsersRepository {
     if (await this.findByEmail(user.email)) {
       throw new EmailAlreadyRegisteredError();
     }
-    const record: UserRecord = { id: randomUUID(), createdAt: new Date(), ...user };
+    const record: UserRecord = {
+      id: randomUUID(),
+      createdAt: new Date(),
+      githubUserId: null,
+      ...user,
+    };
     this.rows.set(record.id, record);
     return record;
+  }
+
+  linkGitHubAccount(userId: string, githubUserId: number): Promise<void> {
+    const holder = [...this.rows.values()].find((u) => u.githubUserId === githubUserId);
+    if (holder && holder.id !== userId) {
+      return Promise.reject(new GitHubAccountAlreadyLinkedError());
+    }
+    const user = this.rows.get(userId);
+    if (user) user.githubUserId = githubUserId;
+    return Promise.resolve();
   }
 }

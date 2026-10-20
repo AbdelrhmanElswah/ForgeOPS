@@ -20,4 +20,13 @@ export class UnconfiguredGitHubAppClient extends GitHubAppClient {
   createScopedToken(): Promise<never> {
     return Promise.reject(new GitHubNotConfiguredError());
   }
+  installationUrl(): never {
+    throw new GitHubNotConfiguredError();
+  }
+  authorizeInstallation(): Promise<never> {
+    return Promise.reject(new GitHubNotConfiguredError());
+  }
+  isValidWebhookSignature(): never {
+    throw new GitHubNotConfiguredError();
+  }
 }

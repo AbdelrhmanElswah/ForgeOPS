@@ -6,28 +6,42 @@ import type { Env } from '../../../common/config/env.schema.js';
 
 export interface GitHubAppCredentials {
   appId: number;
+  slug: string;
   privateKey: string;
   webhookSecret: string;
+  clientId: string;
+  clientSecret: string;
 }
 
 type GitHubEnv = Pick<
   Env,
   | 'GITHUB_APP_ID'
+  | 'GITHUB_APP_SLUG'
   | 'GITHUB_APP_PRIVATE_KEY'
   | 'GITHUB_APP_PRIVATE_KEY_PATH'
   | 'GITHUB_WEBHOOK_SECRET'
+  | 'GITHUB_APP_CLIENT_ID'
+  | 'GITHUB_APP_CLIENT_SECRET'
 >;
 
 /**
  * Resolves the app credentials once, at boot. Returns null when no app is configured.
  * A key that is missing or not a valid PEM fails startup here, with a clear message,
  * instead of failing the first GitHub call minutes later.
+ * (EnvSchema already guarantees the other fields are present whenever GITHUB_APP_ID is.)
  */
 export function loadGitHubAppCredentials(
   env: GitHubEnv,
   baseDir = process.cwd(),
 ): GitHubAppCredentials | null {
-  if (env.GITHUB_APP_ID === undefined || env.GITHUB_WEBHOOK_SECRET === undefined) {
+  const {
+    GITHUB_APP_ID: appId,
+    GITHUB_APP_SLUG: slug,
+    GITHUB_WEBHOOK_SECRET: webhookSecret,
+    GITHUB_APP_CLIENT_ID: clientId,
+    GITHUB_APP_CLIENT_SECRET: clientSecret,
+  } = env;
+  if (appId === undefined || !slug || !webhookSecret || !clientId || !clientSecret) {
     return null;
   }
 
@@ -41,7 +55,7 @@ export function loadGitHubAppCredentials(
     throw new Error('The GitHub App private key is not a valid PEM private key.');
   }
 
-  return { appId: env.GITHUB_APP_ID, privateKey, webhookSecret: env.GITHUB_WEBHOOK_SECRET };
+  return { appId, slug, privateKey, webhookSecret, clientId, clientSecret };
 }
 
 function readKeyFile(path: string): string {
