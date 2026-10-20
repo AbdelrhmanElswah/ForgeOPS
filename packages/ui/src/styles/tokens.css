@@ -1,0 +1,113 @@
+/*
+ * ForgeOps design tokens: the ONLY place colours, radii and fonts are defined.
+ * Components use semantic names (bg-card, text-muted-foreground, border-border…), never raw
+ * colours, so a palette change or the dark theme is a token edit, not a hunt through screens.
+ *
+ * Consumers: `@import "tailwindcss";` then `@import "@forgeops/ui/styles.css";`.
+ */
+
+/* Tell Tailwind to scan the design system's own components for class names. */
+@source "../";
+
+:root {
+  --background: oklch(0.99 0 0);
+  --foreground: oklch(0.21 0.01 260);
+  --card: oklch(1 0 0);
+  --card-foreground: var(--foreground);
+  --muted: oklch(0.965 0.003 260);
+  --muted-foreground: oklch(0.5 0.015 260);
+  --border: oklch(0.91 0.005 260);
+  --input: oklch(0.88 0.006 260);
+  --ring: oklch(0.55 0.17 260);
+
+  --primary: oklch(0.47 0.18 262);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.955 0.006 260);
+  --secondary-foreground: var(--foreground);
+
+  /* Status tones: one meaning each, everywhere (see Badge and Alert). */
+  --info: oklch(0.55 0.17 250);
+  --info-soft: oklch(0.95 0.03 250);
+  --success: oklch(0.52 0.14 150);
+  --success-soft: oklch(0.95 0.04 150);
+  --warning: oklch(0.6 0.15 70);
+  --warning-soft: oklch(0.96 0.05 85);
+  --danger: oklch(0.55 0.2 27);
+  --danger-soft: oklch(0.95 0.03 27);
+
+  --radius: 0.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: oklch(0.16 0.01 260);
+    --foreground: oklch(0.95 0.005 260);
+    --card: oklch(0.2 0.012 260);
+    --muted: oklch(0.24 0.012 260);
+    --muted-foreground: oklch(0.7 0.015 260);
+    --border: oklch(0.3 0.012 260);
+    --input: oklch(0.34 0.012 260);
+    --ring: oklch(0.65 0.15 260);
+
+    --primary: oklch(0.65 0.16 262);
+    --primary-foreground: oklch(0.16 0.01 260);
+    --secondary: oklch(0.26 0.012 260);
+
+    --info: oklch(0.72 0.13 250);
+    --info-soft: oklch(0.3 0.06 250);
+    --success: oklch(0.72 0.14 150);
+    --success-soft: oklch(0.3 0.06 150);
+    --warning: oklch(0.8 0.13 80);
+    --warning-soft: oklch(0.32 0.06 80);
+    --danger: oklch(0.7 0.17 27);
+    --danger-soft: oklch(0.32 0.07 27);
+  }
+}
+
+/* Expose the tokens as Tailwind utilities: bg-primary, text-muted-foreground, border-border… */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 4px);
+
+  /* Font variables are provided by the app (next/font); system fonts are the fallback. */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}

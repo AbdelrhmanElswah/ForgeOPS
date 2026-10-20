@@ -4,7 +4,8 @@
 > tested, reviewed, human-approved Pull Request — safely.
 
 This document is the source of truth for **how ForgeOps is built and why**.
-The step-by-step build order lives in [ROADMAP.md](./ROADMAP.md).
+The step-by-step build order lives in [ROADMAP.md](./ROADMAP.md); the dashboard's architecture in
+[FRONTEND.md](./FRONTEND.md).
 
 ---
 

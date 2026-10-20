@@ -65,6 +65,26 @@ export const boundaries = {
       ],
       message: 'apps/web may only share code with the backend through @forgeops/contracts.',
     },
+    {
+      // Visual building blocks come from the design system only, so nothing gets re-styled
+      // or re-implemented per screen.
+      group: ['radix-ui', '@radix-ui/*', 'class-variance-authority', 'tailwind-merge'],
+      message: 'Use components from @forgeops/ui (add a new one there if it is missing).',
+    },
+    {
+      // A feature's internals are private; other code goes through its public index.ts.
+      group: ['@/features/*/*'],
+      message: 'Import a feature through its public API: "@/features/<name>".',
+    },
+  ],
+
+  // The design system is presentation only: reusable by any screen, tied to no backend or framework.
+  ui: [
+    {
+      group: ['@forgeops/*', 'next', 'next/*', '@tanstack/*', 'zod'],
+      message:
+        'packages/ui is presentation only: no app code, contracts, data fetching or framework imports.',
+    },
   ],
 
   backend: [

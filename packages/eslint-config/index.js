@@ -70,6 +70,16 @@ export function forgeopsConfig({ tsconfigRootDir, boundary, extend = [] }) {
 
     ...extend,
 
+    // Framework presets (e.g. Next.js) may install their own parser for TypeScript files, which
+    // would switch off type information. Re-assert ours after any extension.
+    {
+      files: ['**/*.ts', '**/*.tsx', '**/*.mts', '**/*.cts'],
+      languageOptions: {
+        parser: tseslint.parser,
+        parserOptions: { projectService: true, tsconfigRootDir },
+      },
+    },
+
     // Must stay last: turns off stylistic rules that would fight Prettier.
     prettier,
   );

@@ -1,0 +1,4 @@
+@import 'tailwindcss';
+@import '@forgeops/ui/styles.css';
+
+/* App-specific styles go here, sparingly: shared visuals belong in @forgeops/ui. */
