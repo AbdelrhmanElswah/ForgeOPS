@@ -14,3 +14,6 @@ allowBuilds:
   '@scarf/scarf': false
   # optional native accelerator for BullMQ's msgpackr; it falls back to pure JavaScript.
   msgpackr-extract: false
+  # import resolver used by Next's ESLint preset; its script only re-downloads a native binary
+  # when the platform package is missing, and pnpm already installs that package.
+  unrs-resolver: false
