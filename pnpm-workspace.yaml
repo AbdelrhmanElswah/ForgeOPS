@@ -9,3 +9,8 @@ allowBuilds:
   esbuild: true
   prisma: true
   '@prisma/engines': true
+  # Explicitly denied (CI fails on any undecided package):
+  # install telemetry pulled in by swagger-ui; nothing breaks without it.
+  '@scarf/scarf': false
+  # optional native accelerator for BullMQ's msgpackr; it falls back to pure JavaScript.
+  msgpackr-extract: false
