@@ -41,7 +41,7 @@
   "devDependencies": {
     "@forgeops/eslint-config": "workspace:*",
     "@forgeops/tsconfig": "workspace:*",
-    "@types/node": "^24.19.2",
+    "@types/node": "^26.6.5",
     "@types/picomatch": "^4.0.3",
     "eslint": "^10.13.0",
     "typescript": "~6.0.3",
