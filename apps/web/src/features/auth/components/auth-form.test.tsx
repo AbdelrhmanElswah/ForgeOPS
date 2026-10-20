@@ -1,8 +1,8 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { fakeApi, renderWithQuery } from '../../../../test/utils';
 import { AuthForm } from './auth-form';
 
 const replace = vi.fn();
@@ -20,18 +20,13 @@ const user = {
 };
 
 function renderForm(mode: 'login' | 'register') {
-  const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
-  render(
-    <QueryClientProvider client={client}>
-      <AuthForm mode={mode} />
-    </QueryClientProvider>,
-  );
+  renderWithQuery(<AuthForm mode={mode} />);
 }
 
+/** Both auth endpoints answer the same way in these tests. */
 function respondWith(status: number, body: unknown) {
-  const fetch = vi.fn(() => Promise.resolve(new Response(JSON.stringify(body), { status })));
-  vi.stubGlobal('fetch', fetch);
-  return fetch;
+  const handler = () => ({ status, body });
+  return fakeApi({ 'POST /auth/login': handler, 'POST /auth/register': handler });
 }
 
 describe('AuthForm', () => {
@@ -45,7 +40,7 @@ describe('AuthForm', () => {
   });
 
   it('validates with the same rules as the API before sending anything', async () => {
-    const fetch = respondWith(200, { user });
+    const api = respondWith(200, { user });
     renderForm('register');
 
     await userEvent.type(screen.getByLabelText('Email'), 'not-an-email');
@@ -54,7 +49,7 @@ describe('AuthForm', () => {
 
     expect(screen.getByLabelText('Email')).toHaveAccessibleDescription('Invalid email address');
     expect(screen.getByLabelText('Password')).toHaveAttribute('aria-invalid', 'true');
-    expect(fetch).not.toHaveBeenCalled();
+    expect(api.calls).toHaveLength(0);
   });
 
   it('signs in and continues to the page the user came from', async () => {

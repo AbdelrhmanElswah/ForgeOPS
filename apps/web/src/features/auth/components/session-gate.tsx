@@ -1,7 +1,7 @@
 'use client';
 
 import type { User } from '@forgeops/contracts';
-import { ErrorState, Skeleton } from '@forgeops/ui';
+import { ErrorState, ShellSkeleton } from '@forgeops/ui';
 import { usePathname, useRouter } from 'next/navigation';
 import { createContext, type ReactNode, use, useEffect } from 'react';
 
@@ -61,13 +61,5 @@ export function SessionGate({ children }: { children: ReactNode }) {
       </div>
     );
   }
-  return (
-    <div aria-busy className="flex min-h-dvh">
-      <Skeleton className="hidden w-60 rounded-none md:block" />
-      <div className="flex-1 space-y-4 p-8">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-32 w-full" />
-      </div>
-    </div>
-  );
+  return <ShellSkeleton />;
 }

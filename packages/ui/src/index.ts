@@ -5,6 +5,7 @@ export { cn } from './lib/cn';
 export { Alert, type AlertProps } from './primitives/alert';
 export { Badge, type BadgeProps, badgeVariants, type Tone } from './primitives/badge';
 export { Button, type ButtonProps, buttonVariants } from './primitives/button';
+export { Code } from './primitives/code';
 export {
   Card,
   CardContent,
@@ -19,5 +20,12 @@ export { Skeleton } from './primitives/skeleton';
 export { Spinner } from './primitives/spinner';
 
 export { Field, type FieldControlProps, type FieldProps } from './patterns/field';
-export { NavItem, PageHeader, Shell } from './patterns/layout';
+export { NavItem, PageHeader, Shell, ShellSkeleton } from './patterns/layout';
+export {
+  ResourceList,
+  ResourceListSkeleton,
+  ResourceRow,
+  type ResourceRowProps,
+} from './patterns/resource-list';
+export { SearchInput } from './patterns/search-input';
 export { EmptyState, ErrorState } from './patterns/states';

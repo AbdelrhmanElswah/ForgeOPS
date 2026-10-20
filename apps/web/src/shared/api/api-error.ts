@@ -40,3 +40,8 @@ export class ContractError extends Error {
     this.name = 'ContractError';
   }
 }
+
+/** The server's trace id of any error, if it is an ApiError that has one (for ErrorState). */
+export function traceIdOf(error: unknown): string | undefined {
+  return error instanceof ApiError ? error.traceId : undefined;
+}

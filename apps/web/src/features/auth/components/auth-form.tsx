@@ -17,12 +17,11 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { type SubmitEvent, useState } from 'react';
 
-import { ApiError, safeNextPath } from '@/shared';
+import { describeSubmitError, type FieldErrors, safeNextPath, zodFieldErrors } from '@/shared';
 
 import { useLogin, useRegister } from '../api';
 
 type Mode = 'login' | 'register';
-type FieldName = 'email' | 'password' | 'displayName';
 
 const copy = {
   login: {
@@ -54,7 +53,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
   const login = useLogin();
   const register = useRegister();
   const mutation = mode === 'login' ? login : register;
-  const [errors, setErrors] = useState<Partial<Record<FieldName, string>>>({});
+  const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const text = copy[mode];
 
@@ -67,11 +66,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
     const schema = mode === 'login' ? LoginRequestSchema : RegisterRequestSchema;
     const parsed = schema.safeParse(values);
     if (!parsed.success) {
-      setErrors(
-        Object.fromEntries(
-          parsed.error.issues.map((issue) => [String(issue.path[0]), issue.message]),
-        ),
-      );
+      setErrors(zodFieldErrors(parsed.error, 1));
       return;
     }
     setErrors({});
@@ -84,13 +79,12 @@ export function AuthForm({ mode }: { mode: Mode }) {
       }
       router.replace(next);
     } catch (error) {
-      if (error instanceof ApiError && Object.keys(error.fieldErrors()).length > 0) {
-        setErrors(error.fieldErrors());
-      } else {
-        setFormError(
-          error instanceof ApiError ? error.message : 'Something went wrong. Please try again.',
-        );
-      }
+      const { fieldErrors, formError: message } = describeSubmitError(
+        error,
+        'Something went wrong. Please try again.',
+      );
+      setErrors(fieldErrors);
+      setFormError(message);
     }
   }
 

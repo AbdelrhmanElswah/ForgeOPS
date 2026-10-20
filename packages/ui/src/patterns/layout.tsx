@@ -2,6 +2,7 @@ import { Slot } from 'radix-ui';
 import type { ComponentProps, ReactNode } from 'react';
 
 import { cn } from '../lib/cn';
+import { Skeleton } from '../primitives/skeleton';
 
 /** Title row of every page: same spacing, heading level and action placement everywhere. */
 export function PageHeader({
@@ -42,6 +43,19 @@ export function Shell({
       <main className="flex-1 overflow-x-hidden">
         <div className="mx-auto w-full max-w-6xl px-4 py-8 md:px-8">{children}</div>
       </main>
+    </div>
+  );
+}
+
+/** The Shell's shape while the app loads (session check, first render of a dynamic route). */
+export function ShellSkeleton() {
+  return (
+    <div aria-busy className="flex min-h-dvh">
+      <Skeleton className="hidden w-60 rounded-none md:block" />
+      <div className="flex-1 space-y-4 p-8">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-32 w-full" />
+      </div>
     </div>
   );
 }
