@@ -20,13 +20,13 @@ Task → Planner → Investigator → Implementer → Verifier (real tests) → 
 
 ## Tech stack
 
-| Layer | Tech |
-|-------|------|
-| Backend | NestJS, TypeScript, Prisma, PostgreSQL, Redis, BullMQ |
-| Agents | LangGraph.js, LangChain model adapters, Zod structured outputs |
+| Layer    | Tech                                                               |
+| -------- | ------------------------------------------------------------------ |
+| Backend  | NestJS, TypeScript, Prisma, PostgreSQL, Redis, BullMQ              |
+| Agents   | LangGraph.js, LangChain model adapters, Zod structured outputs     |
 | Frontend | Next.js (App Router), Tailwind CSS, shadcn/ui, TanStack Query, SSE |
-| Infra | Docker, GitHub App + Octokit, OpenTelemetry, Pino, GitHub Actions |
-| Monorepo | pnpm workspaces, Turborepo |
+| Infra    | Docker, GitHub App + Octokit, OpenTelemetry, Pino, GitHub Actions  |
+| Monorepo | pnpm workspaces, Turborepo                                         |
 
 ## Repository layout
 

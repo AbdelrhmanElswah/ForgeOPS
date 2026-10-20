@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "ForgeOps library (ESM package consumed by other workspaces)",
+  "extends": "./base.json",
+  "compilerOptions": {
+    "verbatimModuleSyntax": true,
+    "types": ["node"]
+  }
+}

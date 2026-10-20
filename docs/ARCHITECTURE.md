@@ -10,16 +10,16 @@ The step-by-step build order lives in [ROADMAP.md](./ROADMAP.md).
 
 ## 1. Guiding principles
 
-| # | Principle | What it means in practice |
-|---|-----------|---------------------------|
-| 1 | **The AI proposes, the system decides** | The LLM never changes task status, never picks shell commands, never publishes. Deterministic code does, after validating the LLM output. |
-| 2 | **Nothing leaves the sandbox without a human** | Publishing a PR requires an approval bound to the exact diff hash and base commit. |
-| 3 | **Every step is resumable** | Graph state is checkpointed in Postgres after every node. A crashed worker resumes; it doesn't restart. |
-| 4 | **Every side effect is idempotent** | Retrying a job never creates a second branch, commit, or PR. |
-| 5 | **Repository content is untrusted data** | Code, READMEs, and issues are treated as input, never as instructions (prompt-injection defence). |
-| 6 | **Least privilege everywhere** | Scoped GitHub App permissions, short-lived tokens, per-role tool allowlists, network-less test containers. |
-| 7 | **Contract-first** | One set of Zod schemas defines API payloads, SSE events, and LLM outputs, shared by backend, agents, and frontend. |
-| 8 | **Modular monolith first** | One backend codebase, two processes (API + Worker). Clear module boundaries make a later split possible but not required. |
+| #   | Principle                                      | What it means in practice                                                                                                                 |
+| --- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **The AI proposes, the system decides**        | The LLM never changes task status, never picks shell commands, never publishes. Deterministic code does, after validating the LLM output. |
+| 2   | **Nothing leaves the sandbox without a human** | Publishing a PR requires an approval bound to the exact diff hash and base commit.                                                        |
+| 3   | **Every step is resumable**                    | Graph state is checkpointed in Postgres after every node. A crashed worker resumes; it doesn't restart.                                   |
+| 4   | **Every side effect is idempotent**            | Retrying a job never creates a second branch, commit, or PR.                                                                              |
+| 5   | **Repository content is untrusted data**       | Code, READMEs, and issues are treated as input, never as instructions (prompt-injection defence).                                         |
+| 6   | **Least privilege everywhere**                 | Scoped GitHub App permissions, short-lived tokens, per-role tool allowlists, network-less test containers.                                |
+| 7   | **Contract-first**                             | One set of Zod schemas defines API payloads, SSE events, and LLM outputs, shared by backend, agents, and frontend.                        |
+| 8   | **Modular monolith first**                     | One backend codebase, two processes (API + Worker). Clear module boundaries make a later split possible but not required.                 |
 
 **Non-goals (v1):** auto-merge, multi-tenant organisations/billing, supporting every language's toolchain, fixing every bug. ForgeOps knows when to **stop and ask**.
 
@@ -56,8 +56,8 @@ ForgeOps combines three well-known styles, each solving a specific problem:
    (`tasks`, `approvals`, `github`, …) and **two entrypoints**: `api.main.ts` and `worker.main.ts`.
    You get simple local development and shared code, while the worker scales separately.
 2. **Hexagonal / Ports & Adapters** (inside complex modules and the agents package) —
-   business logic depends on *interfaces* (ports) such as `LlmFactory`, `SandboxPort`, `GitHubPort`,
-   `TaskLifecyclePort`. NestJS provides the *adapters* (Docker, Octokit, Prisma). This is why the
+   business logic depends on _interfaces_ (ports) such as `LlmFactory`, `SandboxPort`, `GitHubPort`,
+   `TaskLifecyclePort`. NestJS provides the _adapters_ (Docker, Octokit, Prisma). This is why the
    agent graph can be unit-tested with fakes and no Docker, GitHub, or real LLM.
 3. **Event-driven workflow** (runtime) — HTTP requests enqueue jobs and return `202 Accepted`;
    the worker emits an append-only stream of `agent_events` that the UI follows via SSE.
@@ -77,7 +77,7 @@ flowchart TB
 - `contracts` depends only on `zod`.
 - `agents` depends on `contracts` and LangGraph/LangChain. **It never imports NestJS, Prisma, Octokit, or Docker.**
 - `backend` wires everything together. `web` never imports backend code, only contracts.
-- These rules are enforced by ESLint (`eslint-plugin-boundaries`) in CI.
+- These rules are enforced by ESLint `no-restricted-imports` presets in `packages/eslint-config/boundaries.js`, so `pnpm lint` fails on a wrong dependency direction.
 
 ---
 
@@ -171,35 +171,35 @@ modules/tasks/
    └─ prisma-task.repository.ts   implements TaskRepository port
 ```
 
-| Depth | Modules |
-|-------|---------|
-| Full layering | `tasks`, `approvals`, `orchestrator`, `github` |
+| Depth                       | Modules                                                 |
+| --------------------------- | ------------------------------------------------------- |
+| Full layering               | `tasks`, `approvals`, `orchestrator`, `github`          |
 | Thin (controller + service) | `users`, `repositories`, `artifacts`, `audit`, `events` |
 
 ### 5.2 Cross-cutting concerns
 
-| Concern | Implementation |
-|---------|----------------|
-| Config | `@nestjs/config` + Zod schema → app refuses to boot on invalid env |
-| Validation | `nestjs-zod`: DTOs created from `packages/contracts` schemas; also generates Swagger |
-| Errors | Domain errors → `DomainExceptionFilter` → RFC 7807 `application/problem+json` |
-| AuthN | Access JWT (15 min, httpOnly cookie) + rotating refresh token (hashed in `sessions`) |
-| AuthZ | `JwtAuthGuard` globally + ownership policies (`TaskAccessPolicy`) in use cases. Every query is scoped by `userId`. |
-| Idempotency | `IdempotencyInterceptor` on `POST /tasks` and `/approve`: `Idempotency-Key` + request hash stored in Redis (24h) → replays the original response |
-| Rate limiting | `@nestjs/throttler` (Redis store) |
-| Logging | `nestjs-pino` with `taskId` / `runId` / `traceId` in every line + redaction of tokens and keys |
-| Tracing | OpenTelemetry SDK (HTTP, Prisma, BullMQ, LLM spans) → OTLP exporter |
-| Docs | Swagger at `/api/docs`, versioned routes `/api/v1/...` |
+| Concern       | Implementation                                                                                                                                   |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Config        | `@nestjs/config` + Zod schema → app refuses to boot on invalid env                                                                               |
+| Validation    | `nestjs-zod`: DTOs created from `packages/contracts` schemas; also generates Swagger                                                             |
+| Errors        | Domain errors → `DomainExceptionFilter` → RFC 7807 `application/problem+json`                                                                    |
+| AuthN         | Access JWT (15 min, httpOnly cookie) + rotating refresh token (hashed in `sessions`)                                                             |
+| AuthZ         | `JwtAuthGuard` globally + ownership policies (`TaskAccessPolicy`) in use cases. Every query is scoped by `userId`.                               |
+| Idempotency   | `IdempotencyInterceptor` on `POST /tasks` and `/approve`: `Idempotency-Key` + request hash stored in Redis (24h) → replays the original response |
+| Rate limiting | `@nestjs/throttler` (Redis store)                                                                                                                |
+| Logging       | `nestjs-pino` with `taskId` / `runId` / `traceId` in every line + redaction of tokens and keys                                                   |
+| Tracing       | OpenTelemetry SDK (HTTP, Prisma, BullMQ, LLM spans) → OTLP exporter                                                                              |
+| Docs          | Swagger at `/api/docs`, versioned routes `/api/v1/...`                                                                                           |
 
 ### 5.3 Worker process
 
 `worker.main.ts` boots `WorkerModule` with `NestFactory.createApplicationContext()`, so it has no HTTP server.
 
-| Queue | Job | jobId (dedupe) | Purpose |
-|-------|-----|----------------|---------|
-| `agent-runs` | `run.start` | `start:<taskId>` | Start the graph for a new task |
-| `agent-runs` | `run.resume` | `resume:<approvalId>` | Resume after approval/rejection |
-| `maintenance` | `workspace.cleanup` | repeatable | Delete expired workspaces/containers |
+| Queue         | Job                 | jobId (dedupe)        | Purpose                              |
+| ------------- | ------------------- | --------------------- | ------------------------------------ |
+| `agent-runs`  | `run.start`         | `start:<taskId>`      | Start the graph for a new task       |
+| `agent-runs`  | `run.resume`        | `resume:<approvalId>` | Resume after approval/rejection      |
+| `maintenance` | `workspace.cleanup` | repeatable            | Delete expired workspaces/containers |
 
 - **Concurrency** per worker is configurable (default 2 graphs at once).
 - **Retries:** BullMQ `attempts: 3` with exponential backoff. A retry calls the graph with the **same
@@ -230,15 +230,15 @@ flowchart TD
     PB --> E([completed])
 ```
 
-| Node | Kind | Allowed tools | Output (Zod-validated) |
-|------|------|---------------|------------------------|
-| `planner` | LLM, structured output | `repo.tree`, `repo.metadata` | `Plan { goal, steps[], suspectedAreas[], acceptanceCriteria[] }` |
-| `investigator` | LLM tool loop (max N calls) | `repo.read_file`, `repo.search`, `repo.tree` | `Findings { rootCause, evidence[{file,lines,why}], filesToChange[], confidence }` |
-| `implementer` | LLM tool loop | `workspace.read_file`, `workspace.edit_file` (search/replace), `workspace.create_file` | `ImplementationSummary { changes[], testsAdded[] }` |
-| `verifier` | **Deterministic** (no LLM) | `sandbox.run_tests` (command from repo settings), `git.diff` | `Verification { passed, testResults, diffStats, guardViolations[] }` |
-| `reviewer` | LLM, structured output | none (receives diff + results) | `Review { risk: low/medium/high, findings[], recommendation }` |
-| `await_approval` | `interrupt()` | — | resumes with `{ decision, approvalId }` |
-| `publisher` | **Deterministic** | `GitHubPort` (branch, commit, PR) | `{ pullRequestUrl, number }` |
+| Node             | Kind                        | Allowed tools                                                                          | Output (Zod-validated)                                                            |
+| ---------------- | --------------------------- | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `planner`        | LLM, structured output      | `repo.tree`, `repo.metadata`                                                           | `Plan { goal, steps[], suspectedAreas[], acceptanceCriteria[] }`                  |
+| `investigator`   | LLM tool loop (max N calls) | `repo.read_file`, `repo.search`, `repo.tree`                                           | `Findings { rootCause, evidence[{file,lines,why}], filesToChange[], confidence }` |
+| `implementer`    | LLM tool loop               | `workspace.read_file`, `workspace.edit_file` (search/replace), `workspace.create_file` | `ImplementationSummary { changes[], testsAdded[] }`                               |
+| `verifier`       | **Deterministic** (no LLM)  | `sandbox.run_tests` (command from repo settings), `git.diff`                           | `Verification { passed, testResults, diffStats, guardViolations[] }`              |
+| `reviewer`       | LLM, structured output      | none (receives diff + results)                                                         | `Review { risk: low/medium/high, findings[], recommendation }`                    |
+| `await_approval` | `interrupt()`               | —                                                                                      | resumes with `{ decision, approvalId }`                                           |
+| `publisher`      | **Deterministic**           | `GitHubPort` (branch, commit, PR)                                                      | `{ pullRequestUrl, number }`                                                      |
 
 Agents are **roles** (prompt + tool set + output schema), not separate programs. They can share one
 model or use different models per role (for example, a cheaper model for planning and review).
@@ -248,22 +248,22 @@ model or use different models per role (for example, a cheaper model for plannin
 ```ts
 // packages/agents/src/state/agent-state.ts (sketch)
 export const AgentState = Annotation.Root({
-  taskId:        Annotation<string>(),
-  runId:         Annotation<string>(),          // = LangGraph thread_id
-  repository:    Annotation<RepoRef>(),         // { id, owner, name, baseBranch }
+  taskId: Annotation<string>(),
+  runId: Annotation<string>(), // = LangGraph thread_id
+  repository: Annotation<RepoRef>(), // { id, owner, name, baseBranch }
   baseCommitSha: Annotation<string>(),
-  instruction:   Annotation<string>(),
-  plan:          Annotation<Plan | null>(),
-  findings:      Annotation<Findings | null>(),
-  changedFiles:  Annotation<string[]>({ reducer: union, default: () => [] }),
-  diffArtifactId:Annotation<string | null>(),   // big data → artifact store, only the id lives here
-  diffHash:      Annotation<string | null>(),
-  testResults:   Annotation<TestRunSummary[]>({ reducer: append, default: () => [] }),
-  review:        Annotation<Review | null>(),
-  approval:      Annotation<ApprovalRef | null>(),
-  pullRequest:   Annotation<PullRequestRef | null>(),
-  retryCount:    Annotation<number>({ default: () => 0 }),
-  budget:        Annotation<BudgetUsage>(),     // tokens, cost, tool calls, wall time
+  instruction: Annotation<string>(),
+  plan: Annotation<Plan | null>(),
+  findings: Annotation<Findings | null>(),
+  changedFiles: Annotation<string[]>({ reducer: union, default: () => [] }),
+  diffArtifactId: Annotation<string | null>(), // big data → artifact store, only the id lives here
+  diffHash: Annotation<string | null>(),
+  testResults: Annotation<TestRunSummary[]>({ reducer: append, default: () => [] }),
+  review: Annotation<Review | null>(),
+  approval: Annotation<ApprovalRef | null>(),
+  pullRequest: Annotation<PullRequestRef | null>(),
+  retryCount: Annotation<number>({ default: () => 0 }),
+  budget: Annotation<BudgetUsage>(), // tokens, cost, tool calls, wall time
 });
 ```
 
@@ -273,15 +273,39 @@ file contents. Large data (diffs, logs) goes to the artifact store, and the stat
 ### 6.3 Ports (what the backend must provide)
 
 ```ts
-interface LlmFactory      { forRole(role: AgentRole): BaseChatModel }        // provider adapter
-interface RepoReaderPort  { tree(); readFile(path, range?); search(query) }  // reads sandbox workspace
-interface WorkspacePort   { editFile(path, search, replace); createFile(); diff() }
-interface SandboxPort     { runTests(workspaceId, signal): TestRunResult }
-interface GitHubPort      { publish(input: PublishInput): PullRequestRef }   // idempotent
-interface TaskLifecyclePort { transition(taskId, to: TaskStatus); isCancelRequested(taskId) }
-interface EventSinkPort   { emit(event: AgentEvent) }
-interface ArtifactPort    { put(taskId, kind, content): id; get(id) }
-interface ApprovalPort    { verify(approvalId, diffHash, baseSha): VerifiedApproval }
+interface LlmFactory {
+  forRole(role: AgentRole): BaseChatModel;
+} // provider adapter
+interface RepoReaderPort {
+  tree();
+  readFile(path, range?);
+  search(query);
+} // reads sandbox workspace
+interface WorkspacePort {
+  editFile(path, search, replace);
+  createFile();
+  diff();
+}
+interface SandboxPort {
+  runTests(workspaceId, signal): TestRunResult;
+}
+interface GitHubPort {
+  publish(input: PublishInput): PullRequestRef;
+} // idempotent
+interface TaskLifecyclePort {
+  transition(taskId, to: TaskStatus);
+  isCancelRequested(taskId);
+}
+interface EventSinkPort {
+  emit(event: AgentEvent);
+}
+interface ArtifactPort {
+  put(taskId, kind, content): id;
+  get(id);
+}
+interface ApprovalPort {
+  verify(approvalId, diffHash, baseSha): VerifiedApproval;
+}
 ```
 
 ### 6.4 Provider adapter
@@ -347,15 +371,15 @@ create volume → clone (network ON, git hooks disabled, token via one-shot cred
 
 Container hardening for every run:
 
-| Control | Setting |
-|---------|---------|
-| User | non-root (`uid 1000`), `--cap-drop=ALL`, `no-new-privileges` |
-| Filesystem | read-only root, writable only `/workspace` volume + `/tmp` tmpfs |
-| Resources | `--memory`, `--cpus`, `--pids-limit`, hard timeout (kill) |
-| Network | `--network=none` for test runs |
-| Secrets | none: no env passthrough, no Docker socket, no GitHub token |
+| Control      | Setting                                                                                      |
+| ------------ | -------------------------------------------------------------------------------------------- |
+| User         | non-root (`uid 1000`), `--cap-drop=ALL`, `no-new-privileges`                                 |
+| Filesystem   | read-only root, writable only `/workspace` volume + `/tmp` tmpfs                             |
+| Resources    | `--memory`, `--cpus`, `--pids-limit`, hard timeout (kill)                                    |
+| Network      | `--network=none` for test runs                                                               |
+| Secrets      | none: no env passthrough, no Docker socket, no GitHub token                                  |
 | Clone safety | `git -c core.hooksPath=/dev/null clone --depth 1 --no-recurse-submodules` at `baseCommitSha` |
-| Output | stdout/stderr capped (for example 1 MB) and truncated before it goes to the LLM |
+| Output       | stdout/stderr capped (for example 1 MB) and truncated before it goes to the LLM              |
 
 > Docker is an isolation layer, not a perfect security boundary. The worker host should be dedicated.
 > A stronger runtime such as gVisor (`runsc`) is a documented upgrade path.
@@ -440,20 +464,20 @@ stateDiagram-v2
 
 ## 10. Data model (PostgreSQL + Prisma)
 
-| Table | Key columns | Notes |
-|-------|-------------|-------|
-| `users` | id, email, passwordHash?, githubUserId? | |
-| `sessions` | id, userId, refreshTokenHash, expiresAt, revokedAt | refresh rotation |
-| `github_installations` | id, installationId (unique), accountLogin, accountType, userId | |
-| `repositories` | id, installationId, githubRepoId (unique), owner, name, defaultBranch, settings (json: testCommand, limits) | |
-| `tasks` | id, userId, repositoryId, instruction, baseBranch, baseCommitSha, status, version, failureReason, costUsd, cancelRequestedAt | index (userId, createdAt) |
-| `agent_runs` | id (= thread_id), taskId, attempt, status, startedAt, endedAt | |
-| `agent_events` | id, taskId, runId, **seq** (per task), type, node, payload json, createdAt | append-only; unique (taskId, seq) |
-| `task_artifacts` | id, taskId, kind (diff/test_log/report), storage (db/s3), content/uri, sha256, size | |
-| `approvals` | id, taskId, userId, decision, **diffHash**, **baseCommitSha**, comment, createdAt | approval bound to exact changes |
-| `pull_requests` | id, taskId (**unique**), number, url, branch, headSha | idempotency anchor |
-| `audit_logs` | id, actorId, action, targetType, targetId, metadata, ip, createdAt | approvals, publishes, installs |
-| `idempotency_keys` | key, userId, requestHash, response, expiresAt | (or Redis) |
+| Table                  | Key columns                                                                                                                  | Notes                             |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| `users`                | id, email, passwordHash?, githubUserId?                                                                                      |                                   |
+| `sessions`             | id, userId, refreshTokenHash, expiresAt, revokedAt                                                                           | refresh rotation                  |
+| `github_installations` | id, installationId (unique), accountLogin, accountType, userId                                                               |                                   |
+| `repositories`         | id, installationId, githubRepoId (unique), owner, name, defaultBranch, settings (json: testCommand, limits)                  |                                   |
+| `tasks`                | id, userId, repositoryId, instruction, baseBranch, baseCommitSha, status, version, failureReason, costUsd, cancelRequestedAt | index (userId, createdAt)         |
+| `agent_runs`           | id (= thread_id), taskId, attempt, status, startedAt, endedAt                                                                |                                   |
+| `agent_events`         | id, taskId, runId, **seq** (per task), type, node, payload json, createdAt                                                   | append-only; unique (taskId, seq) |
+| `task_artifacts`       | id, taskId, kind (diff/test_log/report), storage (db/s3), content/uri, sha256, size                                          |                                   |
+| `approvals`            | id, taskId, userId, decision, **diffHash**, **baseCommitSha**, comment, createdAt                                            | approval bound to exact changes   |
+| `pull_requests`        | id, taskId (**unique**), number, url, branch, headSha                                                                        | idempotency anchor                |
+| `audit_logs`           | id, actorId, action, targetType, targetId, metadata, ip, createdAt                                                           | approvals, publishes, installs    |
+| `idempotency_keys`     | key, userId, requestHash, response, expiresAt                                                                                | (or Redis)                        |
 
 LangGraph checkpoint tables live in a separate `langgraph` schema, managed by `PostgresSaver.setup()`.
 
@@ -490,32 +514,32 @@ discriminated union in `packages/contracts` (`node.started`, `tool.called`, `too
 - **Key screens:** dashboard, repositories, new task, task timeline (live agent steps), review
   (diff viewer + test results + risk + cost → Approve/Reject), integrations.
 
-| Route | Purpose |
-|-------|---------|
-| `/login` | sign in |
-| `/dashboard` | stats + recent tasks |
-| `/repositories` | linked repos, install GitHub App |
-| `/tasks/new` | create task |
-| `/tasks/[id]` | live timeline of agents, tools, logs |
-| `/tasks/[id]/review` | diff, tests, review, approve/reject |
-| `/settings/integrations` | installations & permissions |
+| Route                    | Purpose                              |
+| ------------------------ | ------------------------------------ |
+| `/login`                 | sign in                              |
+| `/dashboard`             | stats + recent tasks                 |
+| `/repositories`          | linked repos, install GitHub App     |
+| `/tasks/new`             | create task                          |
+| `/tasks/[id]`            | live timeline of agents, tools, logs |
+| `/tasks/[id]/review`     | diff, tests, review, approve/reject  |
+| `/settings/integrations` | installations & permissions          |
 
 ---
 
 ## 13. Security model (threat → control)
 
-| Threat | Control |
-|--------|---------|
-| Prompt injection from repo content | Untrusted-data framing, no dangerous tools, deterministic gates, human approval |
-| Malicious code in tests (exfiltration, crypto-mining) | Network-less, non-root, resource-limited, secret-free containers + timeouts |
-| Path traversal / symlink escape | PathGuard with realpath resolution + denylist |
-| Approving one diff, publishing another | Approval bound to `diffHash` + `baseCommitSha`, re-verified at publish |
-| Duplicate PRs on retry | Unique `pull_requests.taskId`, deterministic branch, look-before-create |
-| Token leakage | Just-in-time installation tokens, adapter-only use, Pino redaction, never in state/prompt |
-| User accessing another user's tasks | Ownership checks in every use case, scoped queries, tests for IDOR |
-| Forged webhooks | HMAC signature verification + delivery-id dedupe |
-| Runaway cost | Per-task budgets (tokens, $, tool calls, time), per-user rate limits |
-| Unaccountable actions | `audit_logs` for approvals, publishes, installation changes |
+| Threat                                                | Control                                                                                   |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Prompt injection from repo content                    | Untrusted-data framing, no dangerous tools, deterministic gates, human approval           |
+| Malicious code in tests (exfiltration, crypto-mining) | Network-less, non-root, resource-limited, secret-free containers + timeouts               |
+| Path traversal / symlink escape                       | PathGuard with realpath resolution + denylist                                             |
+| Approving one diff, publishing another                | Approval bound to `diffHash` + `baseCommitSha`, re-verified at publish                    |
+| Duplicate PRs on retry                                | Unique `pull_requests.taskId`, deterministic branch, look-before-create                   |
+| Token leakage                                         | Just-in-time installation tokens, adapter-only use, Pino redaction, never in state/prompt |
+| User accessing another user's tasks                   | Ownership checks in every use case, scoped queries, tests for IDOR                        |
+| Forged webhooks                                       | HMAC signature verification + delivery-id dedupe                                          |
+| Runaway cost                                          | Per-task budgets (tokens, $, tool calls, time), per-user rate limits                      |
+| Unaccountable actions                                 | `audit_logs` for approvals, publishes, installation changes                               |
 
 ---
 
@@ -532,38 +556,38 @@ discriminated union in `packages/contracts` (`node.started`, `tool.called`, `too
 
 ## 15. Testing strategy
 
-| Layer | Tooling | Examples |
-|-------|---------|----------|
-| Unit (domain) | Jest | state machine transitions, PathGuard, DiffGuard, diff hashing, budgets |
-| Unit (agents) | Jest + `FakeChatModel` + port fakes | routing after test failure, retry limits, interrupt/resume, invalid LLM JSON handling |
-| Integration | Jest + Testcontainers (Postgres, Redis) | create task → job enqueued, approval flow, SSE replay, checkpoint resume |
-| GitHub | Octokit mocked with `nock` | idempotent publish, expired token refresh, webhook signature |
-| Sandbox | real Docker (CI job) | timeout kill, network blocked, path escape blocked |
-| E2E | Playwright | create task → watch timeline → approve → PR link (fake LLM + fake GitHub) |
-| Evals | `evals/` runner | real LLM on fixture repos with seeded bugs → success rate, cost, time |
+| Layer         | Tooling                                 | Examples                                                                              |
+| ------------- | --------------------------------------- | ------------------------------------------------------------------------------------- |
+| Unit (domain) | Jest                                    | state machine transitions, PathGuard, DiffGuard, diff hashing, budgets                |
+| Unit (agents) | Jest + `FakeChatModel` + port fakes     | routing after test failure, retry limits, interrupt/resume, invalid LLM JSON handling |
+| Integration   | Jest + Testcontainers (Postgres, Redis) | create task → job enqueued, approval flow, SSE replay, checkpoint resume              |
+| GitHub        | Octokit mocked with `nock`              | idempotent publish, expired token refresh, webhook signature                          |
+| Sandbox       | real Docker (CI job)                    | timeout kill, network blocked, path escape blocked                                    |
+| E2E           | Playwright                              | create task → watch timeline → approve → PR link (fake LLM + fake GitHub)             |
+| Evals         | `evals/` runner                         | real LLM on fixture repos with seeded bugs → success rate, cost, time                 |
 
 ---
 
 ## 16. Design-pattern catalogue
 
-| Pattern | Where | Why |
-|---------|-------|-----|
-| Modular Monolith | `apps/backend` modules | Simple to build, deploy, and test; split-ready |
-| Ports & Adapters (Hexagonal) | `packages/agents/ports`, backend adapters | Agent logic is testable and infrastructure is swappable |
-| Use Case / Application Service | `modules/*/application` | One class per business action; controllers stay thin |
-| Repository | `infrastructure/prisma-*.repository.ts` | Domain is isolated from Prisma; easy to fake |
-| State Machine | `tasks/domain/task-status.ts` | Illegal transitions become impossible, not just unlikely |
-| Strategy + Factory | `LlmFactory`, per-role model selection | Change provider or model with config |
-| Adapter | Octokit, Docker, S3 wrappers | External APIs hidden behind project-shaped interfaces |
-| Command / Message Queue | BullMQ jobs | Long work stays off the HTTP request; retries and backoff |
-| Transactional Outbox (lite) | `agent_events` + Redis pub/sub | Reliable, replayable real-time events |
-| Idempotency Key | HTTP interceptor + publish anchors | Retries are safe at every layer |
-| Optimistic Locking | `tasks.version` | Concurrent workers or requests can't corrupt status |
-| Chain of Responsibility | Tool call pipeline (validate → policy → guard → execute) | Composable, testable safety checks |
-| Policy Object | `ToolPolicy`, `TaskAccessPolicy`, `ApprovalPolicy` | Authorization rules in one named, testable place |
-| Checkpoint / Memento | LangGraph `PostgresSaver` | Crash recovery and human-in-the-loop pauses |
-| Guard / Interceptor / Filter (Nest) | auth, idempotency, logging, errors | Cross-cutting concerns kept out of business code |
-| Contract-first / Shared Kernel | `packages/contracts` | One schema validates API, SSE, and frontend |
+| Pattern                             | Where                                                    | Why                                                       |
+| ----------------------------------- | -------------------------------------------------------- | --------------------------------------------------------- |
+| Modular Monolith                    | `apps/backend` modules                                   | Simple to build, deploy, and test; split-ready            |
+| Ports & Adapters (Hexagonal)        | `packages/agents/ports`, backend adapters                | Agent logic is testable and infrastructure is swappable   |
+| Use Case / Application Service      | `modules/*/application`                                  | One class per business action; controllers stay thin      |
+| Repository                          | `infrastructure/prisma-*.repository.ts`                  | Domain is isolated from Prisma; easy to fake              |
+| State Machine                       | `tasks/domain/task-status.ts`                            | Illegal transitions become impossible, not just unlikely  |
+| Strategy + Factory                  | `LlmFactory`, per-role model selection                   | Change provider or model with config                      |
+| Adapter                             | Octokit, Docker, S3 wrappers                             | External APIs hidden behind project-shaped interfaces     |
+| Command / Message Queue             | BullMQ jobs                                              | Long work stays off the HTTP request; retries and backoff |
+| Transactional Outbox (lite)         | `agent_events` + Redis pub/sub                           | Reliable, replayable real-time events                     |
+| Idempotency Key                     | HTTP interceptor + publish anchors                       | Retries are safe at every layer                           |
+| Optimistic Locking                  | `tasks.version`                                          | Concurrent workers or requests can't corrupt status       |
+| Chain of Responsibility             | Tool call pipeline (validate → policy → guard → execute) | Composable, testable safety checks                        |
+| Policy Object                       | `ToolPolicy`, `TaskAccessPolicy`, `ApprovalPolicy`       | Authorization rules in one named, testable place          |
+| Checkpoint / Memento                | LangGraph `PostgresSaver`                                | Crash recovery and human-in-the-loop pauses               |
+| Guard / Interceptor / Filter (Nest) | auth, idempotency, logging, errors                       | Cross-cutting concerns kept out of business code          |
+| Contract-first / Shared Kernel      | `packages/contracts`                                     | One schema validates API, SSE, and frontend               |
 
 ---
 
