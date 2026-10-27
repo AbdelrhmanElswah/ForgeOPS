@@ -64,7 +64,7 @@
     "@types/supertest": "^7.2.1",
     "concurrently": "^10.0.6",
     "eslint": "^10.13.0",
-    "nock": "^15.0.3",
+    "nock": "^15.0.5",
     "pino-pretty": "^13.2.0",
     "prisma": "~7.10.1",
     "supertest": "^7.3.1",
