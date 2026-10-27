@@ -31,7 +31,7 @@
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.135.0",
+    "@anthropic-ai/sdk": "^1.3.0",
     "@forgeops/contracts": "workspace:*",
     "@langchain/core": "^1.2.18",
     "@langchain/langgraph": "^1.5.1",
