@@ -14,7 +14,7 @@ export {
   CardHeader,
   CardTitle,
 } from './primitives/card';
-export { Input, Textarea } from './primitives/input';
+export { Input, Select, Textarea } from './primitives/input';
 export { Label } from './primitives/label';
 export { Skeleton } from './primitives/skeleton';
 export { Spinner } from './primitives/spinner';

@@ -10,6 +10,8 @@ import {
   type TaskPage,
   TaskPageSchema,
   TaskSchema,
+  type TaskStats,
+  TaskStatsSchema,
 } from '@forgeops/contracts';
 import { Controller, Get, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -62,6 +64,15 @@ export class TasksController {
     @ZodQuery(ListTasksQuerySchema) query: ListTasksQuery,
   ): Promise<TaskPage> {
     return this.queries.list(user.id, query);
+  }
+
+  // Declared before ':id' so "stats" is not read as a task id.
+  @Get('stats')
+  @ApiOperation({ summary: 'How many of your tasks are in each status' })
+  @ApiZodResponse(200, TaskStatsSchema)
+  @ApiProblemResponses(401)
+  stats(@CurrentUser() user: AuthenticatedUser): Promise<TaskStats> {
+    return this.queries.stats(user.id);
   }
 
   @Get(':id')

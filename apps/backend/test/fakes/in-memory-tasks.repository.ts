@@ -70,6 +70,14 @@ export class InMemoryTasksRepository extends TasksRepository {
     });
   }
 
+  countOwnedByStatus(userId: string): Promise<Partial<Record<TaskStatus, number>>> {
+    const counts: Partial<Record<TaskStatus, number>> = {};
+    for (const t of this.rows.values()) {
+      if (t.userId === userId) counts[t.status] = (counts[t.status] ?? 0) + 1;
+    }
+    return Promise.resolve(counts);
+  }
+
   transition(
     id: string,
     expectedVersion: number,

@@ -9,7 +9,7 @@ convention.
 ```
 packages/ui                 @forgeops/ui: the design system (the only place visuals are defined)
 ├─ src/styles/tokens.css    colours, radii, fonts as CSS variables; light + dark
-├─ src/primitives/          Button, Input, Textarea, Label, Card, Badge, Alert, Spinner, Skeleton
+├─ src/primitives/          Button, Input, Select, Textarea, Label, Card, Badge, Alert, Spinner, Skeleton
 └─ src/patterns/            Field, PageHeader, Shell, NavItem, EmptyState, ErrorState
 
 apps/web/src

@@ -77,6 +77,15 @@ export class PrismaTasksRepository extends TasksRepository {
     };
   }
 
+  async countOwnedByStatus(userId: string): Promise<Partial<Record<TaskStatus, number>>> {
+    const groups = await this.prisma.task.groupBy({
+      by: ['status'],
+      where: { userId },
+      _count: { _all: true },
+    });
+    return Object.fromEntries(groups.map((g) => [g.status, g._count._all]));
+  }
+
   async transition(
     id: string,
     expectedVersion: number,

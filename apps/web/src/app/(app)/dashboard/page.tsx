@@ -1,25 +1,31 @@
-import { Button, EmptyState, PageHeader } from '@forgeops/ui';
-import { FolderGit2 } from 'lucide-react';
+import { Button, PageHeader } from '@forgeops/ui';
+import { Plus } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+import { TaskList, TaskStats } from '@/features/tasks';
+
 export const metadata: Metadata = { title: 'Dashboard' };
 
-// Task statistics arrive in step 7.3; until then, the dashboard points to the first action.
 export default function DashboardPage() {
   return (
     <>
-      <PageHeader title="Dashboard" description="Your tasks and their progress." />
-      <EmptyState
-        icon={<FolderGit2 aria-hidden />}
-        title="No tasks yet"
-        description="Connect a GitHub repository, then describe a bug or feature for the agents."
-        action={
+      <PageHeader
+        title="Dashboard"
+        description="Your tasks and their progress."
+        actions={
           <Button asChild>
-            <Link href="/repositories">Connect a repository</Link>
+            <Link href="/tasks/new">
+              <Plus aria-hidden />
+              New task
+            </Link>
           </Button>
         }
       />
+      <div className="flex flex-col gap-6">
+        <TaskStats />
+        <TaskList />
+      </div>
     </>
   );
 }

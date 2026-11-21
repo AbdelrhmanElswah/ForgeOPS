@@ -118,6 +118,9 @@ because the agents' tools read from the workspace.)
 
 ## Phase 7 — Frontend dashboard (week 7)
 
+> **Status:** 7.1–7.3 done and tested against a fake API. Task lists poll every 5 s until 7.4
+> replaces polling with live events.
+
 | Step | Build                                                                                | Done when                     |
 | ---- | ------------------------------------------------------------------------------------ | ----------------------------- |
 | 7.1  | Next.js app, Tailwind + shadcn/ui, layout, typed API client, auth pages + middleware | login works in the browser    |

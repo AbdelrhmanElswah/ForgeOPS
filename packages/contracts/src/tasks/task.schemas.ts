@@ -62,3 +62,9 @@ export type CreateTaskResponse = z.infer<typeof CreateTaskResponseSchema>;
 
 export const TaskPageSchema = pageOf(TaskSchema);
 export type TaskPage = z.infer<typeof TaskPageSchema>;
+
+/** `GET /api/v1/tasks/stats`: how many of your tasks are in each status (every status, zeros included). */
+export const TaskStatsSchema = z.object({
+  byStatus: z.record(TaskStatusSchema, z.number().int().nonnegative()),
+});
+export type TaskStats = z.infer<typeof TaskStatsSchema>;

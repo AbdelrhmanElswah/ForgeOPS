@@ -10,6 +10,11 @@ export function Input({ className, ...props }: ComponentProps<'input'>) {
   return <input className={cn(controlClasses, 'h-9', className)} {...props} />;
 }
 
+/** Native select: keyboard, screen-reader and mobile pickers come for free. */
+export function Select({ className, ...props }: ComponentProps<'select'>) {
+  return <select className={cn(controlClasses, 'h-9', className)} {...props} />;
+}
+
 export function Textarea({ className, ...props }: ComponentProps<'textarea'>) {
   return <textarea className={cn(controlClasses, 'min-h-24 py-2', className)} {...props} />;
 }

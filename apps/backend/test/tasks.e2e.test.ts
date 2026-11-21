@@ -7,6 +7,7 @@ import {
   RepositoryPageSchema,
   TaskPageSchema,
   TaskSchema,
+  TaskStatsSchema,
 } from '@forgeops/contracts';
 import type { INestApplication } from '@nestjs/common';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -163,6 +164,25 @@ describe('Tasks (e2e)', () => {
     const bobs = TaskPageSchema.parse((await bob.get('/api/v1/tasks').expect(200)).body);
     expect(bobs.items).toEqual([]);
     await bob.get(`/api/v1/tasks/${first.id}`).expect(404);
+  });
+
+  it('counts only your own tasks per status, with every status present', async () => {
+    await createTask(alice, { repositoryId: aliceRepoId, instruction }).expect(202);
+    const second = CreateTaskResponseSchema.parse(
+      (
+        await createTask(alice, {
+          repositoryId: aliceRepoId,
+          instruction: `${instruction} 2`,
+        }).expect(202)
+      ).body,
+    );
+    await alice.post(`/api/v1/tasks/${second.id}/cancel`).expect(200);
+
+    const stats = TaskStatsSchema.parse((await alice.get('/api/v1/tasks/stats').expect(200)).body);
+    expect(stats.byStatus).toMatchObject({ queued: 1, cancelled: 1, completed: 0 });
+
+    const bobs = TaskStatsSchema.parse((await bob.get('/api/v1/tasks/stats').expect(200)).body);
+    expect(Object.values(bobs.byStatus).every((n) => n === 0)).toBe(true);
   });
 
   describe('cancel', () => {

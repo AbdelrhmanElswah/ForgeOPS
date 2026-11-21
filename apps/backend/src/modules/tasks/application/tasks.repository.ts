@@ -52,6 +52,8 @@ export abstract class TasksRepository {
     userId: string,
     query: TaskListQuery,
   ): Promise<{ items: TaskRecord[]; nextCursor: string | null }>;
+  /** Statuses with no tasks are simply absent. */
+  abstract countOwnedByStatus(userId: string): Promise<Partial<Record<TaskStatus, number>>>;
 
   /**
    * Compare-and-set: applies the change only if the stored version still equals

@@ -1,4 +1,12 @@
-import { IdSchema, type ListTasksQuery, type Task, type TaskPage } from '@forgeops/contracts';
+import {
+  IdSchema,
+  type ListTasksQuery,
+  TASK_STATUSES,
+  type Task,
+  type TaskPage,
+  type TaskStats,
+  type TaskStatus,
+} from '@forgeops/contracts';
 import { Injectable } from '@nestjs/common';
 
 import { NotFoundError, ValidationError } from '../../../common/errors/domain-error.js';
@@ -23,6 +31,16 @@ export class TaskQueries {
     }
     const page = await this.tasks.listOwned(userId, query);
     return { items: page.items.map(toTaskDto), nextCursor: page.nextCursor };
+  }
+
+  async stats(userId: string): Promise<TaskStats> {
+    const counts = await this.tasks.countOwnedByStatus(userId);
+    return {
+      byStatus: Object.fromEntries(TASK_STATUSES.map((s) => [s, counts[s] ?? 0])) as Record<
+        TaskStatus,
+        number
+      >,
+    };
   }
 }
 
