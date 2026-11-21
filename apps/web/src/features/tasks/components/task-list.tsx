@@ -2,7 +2,6 @@
 
 import type { Task } from '@forgeops/contracts';
 import {
-  Badge,
   Button,
   Code,
   EmptyState,
@@ -14,10 +13,11 @@ import {
 import { GitBranch, ListChecks } from 'lucide-react';
 import Link from 'next/link';
 
-import { ApiError, traceIdOf } from '@/shared';
+import { traceIdOf } from '@/shared';
 
-import { useCancelTask, useTasks } from '../api';
-import { canCancel, isWorking, statusLabel, statusTone } from '../model';
+import { useTasks } from '../api';
+import { CancelTaskButton } from './cancel-task-button';
+import { TaskBadges } from './task-badges';
 
 export function TaskList() {
   const query = useTasks();
@@ -70,21 +70,14 @@ export function TaskList() {
 }
 
 function TaskRow({ task }: { task: Task }) {
-  const cancel = useCancelTask();
   return (
     <ResourceRow
-      title={task.instruction}
-      badges={
-        <>
-          <Badge tone={statusTone(task.status)} pulse={isWorking(task.status)}>
-            {statusLabel(task.status)}
-          </Badge>
-          {task.failureReason && <Badge tone="danger">{statusLabel(task.failureReason)}</Badge>}
-          {task.cancelRequestedAt && task.status !== 'cancelled' && (
-            <Badge tone="neutral">Stopping</Badge>
-          )}
-        </>
+      title={
+        <Link href={`/tasks/${task.id}`} className="hover:underline">
+          {task.instruction}
+        </Link>
       }
+      badges={<TaskBadges task={task} />}
       meta={
         <>
           <span className="flex items-center gap-1">
@@ -95,28 +88,7 @@ function TaskRow({ task }: { task: Task }) {
           {task.costUsd > 0 && <span>${task.costUsd.toFixed(2)}</span>}
         </>
       }
-      trailing={
-        canCancel(task) && (
-          <>
-            {cancel.isError && (
-              <span role="alert" className="text-xs text-danger">
-                {cancel.error instanceof ApiError ? cancel.error.message : 'Could not cancel'}
-              </span>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              loading={cancel.isPending}
-              aria-label={`Cancel task: ${task.instruction}`}
-              onClick={() => {
-                cancel.mutate(task.id);
-              }}
-            >
-              Cancel
-            </Button>
-          </>
-        )
-      }
+      trailing={<CancelTaskButton task={task} />}
     />
   );
 }

@@ -1,7 +1,7 @@
 import {
   ACTIVE_TASK_STATUSES,
   isTerminalStatus,
-  type TaskFailureReason,
+  type TaskEvent,
   type TaskStatus,
 } from '@forgeops/contracts';
 import type { Tone } from '@forgeops/ui';
@@ -25,8 +25,8 @@ export function statusTone(status: TaskStatus): Tone {
   return STATUS_TONE[status];
 }
 
-/** "awaiting_approval" → "Awaiting approval". */
-export function statusLabel(status: TaskStatus | TaskFailureReason): string {
+/** "awaiting_approval" → "Awaiting approval" (also node and role names). */
+export function statusLabel(status: string): string {
   const words = status.replaceAll('_', ' ');
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
@@ -39,6 +39,51 @@ export function isWorking(status: TaskStatus): boolean {
 /** The API refuses to cancel a finished task, so the button is not offered. */
 export function canCancel(task: { status: TaskStatus; cancelRequestedAt: string | null }): boolean {
   return !isTerminalStatus(task.status) && task.cancelRequestedAt === null;
+}
+
+export interface EventView {
+  title: string;
+  detail?: string;
+  tone: Tone;
+}
+
+const seconds = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
+
+/** Timeline event → one line of text, defined once (a switch, so new event types fail to compile). */
+export function describeEvent(event: TaskEvent): EventView {
+  switch (event.type) {
+    case 'status.changed':
+      return {
+        title: `Status: ${statusLabel(event.status)}`,
+        ...(event.failureReason && { detail: statusLabel(event.failureReason) }),
+        tone: statusTone(event.status),
+      };
+    case 'node.started':
+      return { title: `${statusLabel(event.node)} started`, tone: 'info' };
+    case 'node.completed':
+      return {
+        title: `${statusLabel(event.node)} finished`,
+        detail: seconds(event.durationMs),
+        tone: 'neutral',
+      };
+    case 'llm.called':
+      return {
+        title: `${statusLabel(event.role)} asked ${event.model}`,
+        detail: [
+          `${event.inputTokens.toLocaleString()} in / ${event.outputTokens.toLocaleString()} out tokens`,
+          event.costUsd !== null && `$${event.costUsd.toFixed(4)}`,
+        ]
+          .filter(Boolean)
+          .join(' · '),
+        tone: 'neutral',
+      };
+    case 'tool.called':
+      return {
+        title: `${statusLabel(event.role)} used ${event.tool}`,
+        detail: [seconds(event.durationMs), event.error].filter(Boolean).join(' · '),
+        tone: event.ok ? 'neutral' : 'danger',
+      };
+  }
 }
 
 /** Dashboard groups: what needs the user, what is running, how runs ended. */
